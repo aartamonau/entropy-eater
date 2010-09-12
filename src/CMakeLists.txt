@@ -7,6 +7,8 @@ endfunction (subdir_variables )
 
 subdir_variables ( EATER_MODULE module )
 subdir_variables ( EATER_LIB    lib )
+subdir_variables ( EATER_CLIENT client )
 
 add_subdirectory ( module )
 add_subdirectory ( lib )
+add_subdirectory ( client )
