@@ -13,7 +13,7 @@ static struct genl_family eater_genl_family = {
   .id      = GENL_ID_GENERATE,
   .hdrsize = 0,
   .name    = EATER_PROTO_NAME,
-  .version = 0,
+  .version = EATER_PROTO_VERSION,
   .maxattr = EATER_ATTR_MAX,
 };
 

@@ -16,6 +16,10 @@
 #define EATER_PROTO_NAME "eater"
 
 
+/// Protocol version.
+#define EATER_PROTO_VERSION 0
+
+
 /// Entropy eater's attributes.
 enum eater_attr_t {
   EATER_ATTR_NONE,              /**< For calls with no arguments. */
