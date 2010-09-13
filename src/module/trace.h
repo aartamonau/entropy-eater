@@ -96,4 +96,19 @@
 #define TRACE_DEBUG(format, ...) TRACE(KERN_DEBUG, format, ##__VA_ARGS__)
 
 
+/**
+ * Asserts that expression holds true. Otherwise traces error using
+ * #TRACE_EMERG and calls #BUG macro.
+ *
+ * @param expr expression that must be true
+ */
+#define ASSERT(expr)                                  \
+  do {                                                \
+    if (!(expr)) {                                    \
+      TRACE_EMERG("Assertion failed: %s.", #expr);    \
+      BUG();                                          \
+    }                                                 \
+  } while (0)
+
+
 #endif /* _TRACE_H_ */
