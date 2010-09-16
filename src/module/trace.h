@@ -12,6 +12,9 @@
 #define _TRACE_H_
 
 
+#include <linux/kernel.h>
+
+
 /**
  * Common trace utility macro.
  *
