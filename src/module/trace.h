@@ -105,6 +105,8 @@
  *
  * @param expr expression that must be true
  */
+#ifndef NOASSERT
+
 #define ASSERT(expr)                                  \
   do {                                                \
     if (!(expr)) {                                    \
@@ -112,6 +114,12 @@
       BUG();                                          \
     }                                                 \
   } while (0)
+
+#else
+
+#define ASSERT(expr)
+
+#endif
 
 
 #endif /* _TRACE_H_ */
