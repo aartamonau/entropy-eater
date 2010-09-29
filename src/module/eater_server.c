@@ -75,10 +75,6 @@ eater_server_unregister(void)
 static int
 eater_hello(struct sk_buff *skb, struct genl_info *info)
 {
-  struct eater_fsm_event_t event = { .type = EATER_FSM_EVENT_TYPE_HELLO };
-
-  eater_fsm_emit(&event);
-
   printk(KERN_INFO "hello from entropy eater server\n");
 
   return 0;

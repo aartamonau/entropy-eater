@@ -1,21 +1,21 @@
+/**
+ * @file   eater_fsm.h
+ * @author Aliaksiej Artamonaŭ <aliaksiej.artamonau@gmail.com>
+ * @date   Tue Sep 21 21:05:53 2010
+ *
+ * @brief  Finite state machine describing creature's behavior.
+ *
+ *
+ */
 #ifndef _EATER_FSM_H_
 #define _EATER_FSM_H_
 
 
-/// Eater's FSM states.
-enum eater_fsm_state_t {
-  EATER_FSM_STATE_IDLE,
-  __EATER_FSM_STATE_LAST
-};
-
-
-/// Number of states in eater's FSM.
-#define EATER_FSM_STATES_COUNT __EATER_FSM_STATE_LAST
-
-
 /// Event types that eater's FSM can handle.
 enum eater_fsm_event_type_t {
-  EATER_FSM_EVENT_TYPE_HELLO,
+  EATER_FSM_EVENT_TYPE_INIT,
+  EATER_FSM_EVENT_TYPE_DIE_NOBLY,
+  EATER_FSM_EVENT_TYPE_HUNGER_TIMEOUT,
   __EATER_FSM_EVENT_TYPE_LAST
 };
 
@@ -38,6 +38,14 @@ struct eater_fsm_event_t {
 
 
 /**
+ * Initializes entropy eater's FSM.
+ *
+ */
+void
+eater_fsm_init(void);
+
+
+/**
  * Feeds event to FSM.
  *
  * @param event event
@@ -47,6 +55,21 @@ struct eater_fsm_event_t {
  */
 int
 eater_fsm_emit(struct eater_fsm_event_t *event);
+
+
+/**
+ * Simplified version of eater_fsm_emit() function. This function does not
+ * take a pointer to event structure (where simplification is). Instead just
+ * event type if taken. As a drawback only events that do not take data
+ * parameter can be emitted.
+ *
+ * @param event event to emit.
+ *
+ * @retval  0 success
+ * @retval <0 error code
+ */
+int
+eater_fsm_emit_simple(enum eater_fsm_event_type_t event);
 
 
 #endif /* _EATER_FSM_H_ */

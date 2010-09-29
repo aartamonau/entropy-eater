@@ -4,6 +4,7 @@
 #include "trace.h"
 #include "eater_server.h"
 #include "eater_status.h"
+#include "eater_fsm.h"
 
 
 ssize_t show(const char *name, char *buffer)
@@ -31,6 +32,13 @@ int __init eater_init(void)
   }
 
   eater_status_create_file(&eater_attr_attr);
+  eater_fsm_init();
+
+  ret = eater_fsm_emit_simple(EATER_FSM_EVENT_TYPE_INIT);
+  if (ret != 0) {
+    TRACE_ERR("Cannot initialize entropy eater");
+    goto error_server_unregister;
+  }
 
   return 0;
 
@@ -52,6 +60,12 @@ void __exit eater_exit(void)
   ret = eater_server_unregister();
   if (ret != 0) {
     TRACE_ERR("Cannot unregister entropy eater server");
+  }
+
+  ret = eater_fsm_emit_simple(EATER_FSM_EVENT_TYPE_DIE_NOBLY);
+  if (ret != 0) {
+    TRACE_ERR("Sorrowfully, entropy eater has been unable to say his last "
+              "noble word to you");
   }
 
   eater_status_remove_file(&eater_attr_attr);
