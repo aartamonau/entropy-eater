@@ -142,8 +142,9 @@ void
 eater_status_remove_all(void)
 {
   struct eater_status_attribute_t *eater_attr;
+  struct eater_status_attribute_t *tmp;
 
-  list_for_each_entry(eater_attr, &context.attrs, list) {
+  list_for_each_entry_safe(eater_attr, tmp, &context.attrs, list) {
     eater_status_remove_file(eater_attr);
   }
 }
