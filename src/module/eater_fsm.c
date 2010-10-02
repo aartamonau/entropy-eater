@@ -1,9 +1,11 @@
+#include <linux/string.h>
 #include <linux/types.h>
 #include <linux/workqueue.h>
 
 #include "trace.h"
 #include "eater_fsm.h"
 #include "eater_params.h"
+#include "eater_status.h"
 
 
 /**
@@ -263,12 +265,29 @@ void
 eater_fsm_cancel_postponed_event(void);
 
 
-void
+/**
+ * Called when 'fsm_state' attribute is read.
+ *
+ * @return status
+ * @retval >=0 size of written data
+ * @retval  <0 error code;
+ */
+static ssize_t
+eater_fsm_state_attr_show(const char *, char *);
+
+
+/// Exported via sysfs state of fsm.
+EATER_STATUS_ATTR(fsm_state, eater_fsm_state_attr_show);
+
+
+int
 eater_fsm_init(void)
 {
   fsm.state = EATER_FSM_STATE_IDLE;
   INIT_DELAYED_WORK(&fsm.postponed_event_work,
                     eater_fsm_postponed_event_worker_fn);
+
+  return eater_status_create_file(&eater_attr_fsm_state);
 }
 
 
@@ -434,4 +453,11 @@ eater_fsm_cancel_postponed_event(void)
     /* ensuring that work terminated */
     flush_work(&fsm.postponed_event_work.work);
   }
+}
+
+
+static ssize_t
+eater_fsm_state_attr_show(const char *attr, char *buffer)
+{
+  return snprintf(buffer, PAGE_SIZE, "%s\n", eater_fsm_state_to_str(fsm.state));
 }

@@ -40,8 +40,11 @@ struct eater_fsm_event_t {
 /**
  * Initializes entropy eater's FSM.
  *
+ * @return operation status
+ * @retval  0 success
+ * @retval <0 error code
  */
-void
+int
 eater_fsm_init(void);
 
 

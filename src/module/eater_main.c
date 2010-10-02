@@ -68,7 +68,8 @@ void __exit eater_exit(void)
               "noble word to you");
   }
 
-  eater_status_remove_file(&eater_attr_attr);
+  /* removing all the exported files to make life easier for other modules */
+  eater_status_remove_all();
   eater_status_remove();
 }
 
