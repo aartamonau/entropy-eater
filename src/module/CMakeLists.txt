@@ -27,10 +27,14 @@ space_separated    ( MODULE_OBJECTS_STR ${MODULE_OBJECTS} )
 
 set ( MODULE_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR} )
 
+get_directory_property ( INCLUDE_DIRECTORIES INCLUDE_DIRECTORIES )
+
 set (
   KBUILD_COMMAND
   ${CMAKE_MAKE_PROGRAM} ARCH=${ARCH}
-                        -C ${KERNEL_DIR} M=${MODULE_OUTPUT_DIR} modules
+                        -C ${KERNEL_DIR} M=${MODULE_OUTPUT_DIR}
+                        EXTRA_CFLAGS=-I${INCLUDE_DIRECTORIES}
+                        modules
 )
 
 configure_file (

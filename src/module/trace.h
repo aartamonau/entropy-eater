@@ -15,6 +15,27 @@
 #include <linux/kernel.h>
 
 
+#include "config.h"
+
+
+static inline const char *
+strip_prefix(const char *str, const char *prefix)
+{
+    const char *ps = str;
+    const char *pp = prefix;
+
+    while (*ps == *pp && *ps != '\0' && *pp != '\0') {
+        ++ps;
+        ++pp;
+    }
+
+    return ps;
+}
+
+
+#define __RELATIVE_FILE__ (strip_prefix(__FILE__, CONFIG_BUILD_ROOT))
+
+
 /**
  * Common trace utility macro.
  *
@@ -22,9 +43,9 @@
  * @param format printf-format
  *
  */
-#define TRACE(level, format, ...)                     \
-  printk(level "%s:%s:%d | " format "\n",             \
-         __FILE__, __func__, __LINE__, ##__VA_ARGS__)
+#define TRACE(level, format, ...)                             \
+  printk(level "%s:%s:%d | " format "\n",                     \
+         __RELATIVE_FILE__, __func__, __LINE__, ##__VA_ARGS__)
 
 
 /**

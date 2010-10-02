@@ -3,7 +3,14 @@ function ( subdir_variables prefix subdir )
         CACHE INTERNAL "" FORCE )
   set ( ${prefix}_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${subdir}
         CACHE INTERNAL "" FORCE )
-endfunction (subdir_variables )
+endfunction ( subdir_variables )
+
+configure_file (
+  config.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/config.h
+)
+
+include_directories( ${CMAKE_CURRENT_BINARY_DIR} )
 
 subdir_variables ( EATER_MODULE module )
 subdir_variables ( EATER_LIB    lib )
