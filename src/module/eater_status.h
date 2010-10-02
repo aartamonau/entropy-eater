@@ -14,6 +14,8 @@
 #define _EATER_STATUS_H_
 
 
+#include <linux/sysfs.h>
+#include <linux/stat.h>
 #include <linux/stringify.h>
 
 
@@ -41,13 +43,13 @@ typedef ssize_t (*eater_attribute_show_t)(const char *name, char *buffer);
  * @param _name attribute name
  * @param _show function to be called when one reads attribute's file
  */
-#define EATER_STATUS_ATTR(_name, _show)                 \
-  struct eater_status_attribute_t eater_attr_##_name =  \
-      { .attr     = { .name = __stringify(_name),       \
-                      .mode = S_IRUGO,                  \
-                    },                                  \
-        .show     = _show,                              \
-        .has_file = false,                              \
+#define EATER_STATUS_ATTR(_name, _show)                       \
+  static struct eater_status_attribute_t eater_attr_##_name = \
+      { .attr     = { .name = __stringify(_name),             \
+                      .mode = S_IRUGO,                        \
+                    },                                        \
+        .show     = _show,                                    \
+        .has_file = false,                                    \
       }
 
 
