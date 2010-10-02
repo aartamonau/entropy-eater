@@ -32,16 +32,24 @@ int __init eater_init(void)
   }
 
   eater_status_create_file(&eater_attr_attr);
-  eater_fsm_init();
+
+  ret = eater_fsm_init();
+  if (ret != 0) {
+    TRACE_ERR("Cannot initialize FSM");
+    goto error_status_remove;
+  }
 
   ret = eater_fsm_emit_simple(EATER_FSM_EVENT_TYPE_INIT);
   if (ret != 0) {
     TRACE_ERR("Cannot initialize entropy eater");
-    goto error_server_unregister;
+    goto error_status_remove;
   }
 
   return 0;
 
+error_status_remove:
+  eater_status_remove_all();
+  eater_status_remove();
 error_server_unregister:
   ret = eater_server_unregister();
   if (ret != 0) {
