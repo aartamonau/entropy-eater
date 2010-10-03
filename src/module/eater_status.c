@@ -1,6 +1,8 @@
 #include <linux/module.h>
 
-#include "trace.h"
+#include "utils/trace.h"
+#include "utils/assert.h"
+
 #include "eater_status.h"
 
 

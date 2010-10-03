@@ -1,4 +1,5 @@
-#include "trace.h"
+#include "utils/trace.h"
+
 #include "eater_server.h"
 #include "eater_fsm.h"
 

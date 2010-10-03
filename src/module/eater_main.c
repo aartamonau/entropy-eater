@@ -1,7 +1,8 @@
 #include <linux/init.h>
 #include <linux/module.h>
 
-#include "trace.h"
+#include "utils/trace.h"
+
 #include "eater_server.h"
 #include "eater_status.h"
 #include "eater_fsm.h"

@@ -1,15 +1,15 @@
 /**
- * @file   utils.h
+ * @file   random.h
  * @author Aliaksiej Artamonaŭ <aliaksiej.artamonau@gmail.com>
  * @date   Tue Sep 28 22:02:41 2010
  *
- * @brief  Various utility functions.
+ * @brief  Utility function to obtain certain random values.
  *
  *
  */
 
-#ifndef _UTILS_H_
-#define _UTILS_H_
+#ifndef _RANDOM_H_
+#define _RANDOM_H_
 
 
 /**
@@ -60,4 +60,4 @@ unsigned int
 get_random_int(void);
 
 
-#endif /* _UTILS_H_ */
+#endif /* _RANDOM_H_ */

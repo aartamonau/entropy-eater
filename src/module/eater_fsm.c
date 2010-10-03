@@ -2,7 +2,8 @@
 #include <linux/types.h>
 #include <linux/workqueue.h>
 
-#include "trace.h"
+#include "utils/trace.h"
+
 #include "eater_fsm.h"
 #include "eater_params.h"
 #include "eater_status.h"

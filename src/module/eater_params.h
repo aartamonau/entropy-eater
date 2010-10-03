@@ -14,8 +14,8 @@
 #define _EATER_PARAMS_H_
 
 
-#include "trace.h"
-#include "utils.h"
+#include "utils/assert.h"
+#include "utils/random.h"
 
 
 static inline int __deviate_value(int value, unsigned int deviation)

@@ -120,27 +120,4 @@ strip_prefix(const char *str, const char *prefix)
 #define TRACE_DEBUG(format, ...) TRACE(KERN_DEBUG, format, ##__VA_ARGS__)
 
 
-/**
- * Asserts that expression holds true. Otherwise traces error using
- * #TRACE_EMERG and calls #BUG macro.
- *
- * @param expr expression that must be true
- */
-#ifndef NOASSERT
-
-#define ASSERT(expr)                                  \
-  do {                                                \
-    if (!(expr)) {                                    \
-      TRACE_EMERG("Assertion failed: %s.", #expr);    \
-      BUG();                                          \
-    }                                                 \
-  } while (0)
-
-#else
-
-#define ASSERT(expr)
-
-#endif
-
-
 #endif /* _TRACE_H_ */
