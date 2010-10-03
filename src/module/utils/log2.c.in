@@ -1,0 +1,3 @@
+const int log2_table[@LOG_ARG_MULTIPLIER@] = {
+  #include "log2_table.inc"
+};

@@ -1,0 +1,43 @@
+/**
+ * @file   log2.h
+ * @author Aliaksiej Artamonaŭ <aliaksiej.artamonau@gmail.com>
+ * @date   Sun Oct  3 15:53:43 2010
+ *
+ * @brief  Table-based calculation of logarithms to base 2.
+ *
+ */
+
+
+#ifndef _LOG2_H_
+#define _LOG2_H_
+
+
+/// Refer documentation of log2() function for explanations.
+#define LOG2_ARG_MULTIPLIER    @LOG_ARG_MULTIPLIER@
+
+
+/// Refer documentation of log2() function for explanations.
+#define LOG2_RESULT_MULTIPLIER @LOG_RESULT_MULTIPLIER@
+
+
+/// Logarithm table.
+extern const int log2_table[@LOG_ARG_MULTIPLIER@];
+
+
+/**
+ * Calculates logarithm to base 2 of the argument lying in the range (0; 1].
+ *
+ * @param x argument to logarithm function multiplied by #LOG2_ARG_MULTIPLIER
+ *
+ * @return resulting value multiplied by #LOG2_RESULT_MULTIPLIER
+ */
+static inline int
+log2(unsigned int x)
+{
+  ASSERT( x > 0 && x <= LOG2_ARG_MULTIPLIER );
+
+  return log2_table[x - 1];
+}
+
+
+#endif /* _LOG2_H_ */
