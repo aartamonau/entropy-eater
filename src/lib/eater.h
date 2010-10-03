@@ -12,6 +12,9 @@
 #define _EATER_H_
 
 
+#include <stdint.h>
+
+
 enum {
   EATER_OK,                     /**< Status indicating that no errors
                                  * occurred during execution. */
@@ -44,6 +47,18 @@ eater_disconnect(void);
 
 int
 eater_cmd_hello(void);
+
+
+/**
+ * Feeds data to entropy eater.
+ *
+ * @param data  data to feed
+ * @param count size of data
+ *
+ * @return
+ */
+int
+eater_cmd_feed(uint8_t *data, size_t count);
 
 
 #endif /* _EATER_H_ */

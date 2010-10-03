@@ -138,8 +138,7 @@ eater_cmd_hello(void)
   }
 
   ret = nl_send_auto_complete(connection.sock, msg);
-  if (ret < 0)
-  {
+  if (ret < 0) {
     errno = -ret;
     goto error;
   }
@@ -149,6 +148,46 @@ eater_cmd_hello(void)
 
   /* the only error that can reported here is ERANGE */
   assert( ret == 0 );
+
+  ret = nl_recvmsgs_default(connection.sock);
+  if (ret < 0) {
+    errno = -ret;
+    goto error;
+  }
+
+  ret = EATER_OK;
+  goto out;
+
+error:
+  ret = EATER_ERROR;
+out:
+  nlmsg_free(msg);
+  return ret;
+}
+
+
+int
+eater_cmd_feed(uint8_t *data, size_t count)
+{
+  int ret;
+  struct nl_msg *msg;
+
+  msg = eater_prepare_message(EATER_CMD_FEED);
+  if (msg == NULL) {
+    return EATER_ERROR;
+  }
+
+  ret = nla_put(msg, EATER_ATTR_FOOD, count, data);
+  if (ret < 0) {
+    errno = -ret;
+    goto error;
+  }
+
+  ret = nl_send_auto_complete(connection.sock, msg);
+  if (ret < 0) {
+    errno = -ret;
+    goto error;
+  }
 
   ret = nl_recvmsgs_default(connection.sock);
   if (ret < 0) {
