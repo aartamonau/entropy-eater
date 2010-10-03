@@ -23,6 +23,7 @@
 /// Entropy eater's attributes.
 enum eater_attr_t {
   EATER_ATTR_NONE,              /**< For calls with no arguments. */
+  EATER_ATTR_FOOD,              /**< "Food" for entropy eater. */
   __EATER_ATTR_MAX,
 };
 
@@ -34,6 +35,7 @@ enum eater_attr_t {
 /// Commands that are supported by entropy eater.
 enum eater_cmd_t {
   EATER_CMD_HELLO,                /**< Says hello to entropy eater. */
+  EATER_CMD_FEED,                 /**< Feeds entropy eater with data. */
   __EATER_CMD_MAX
 };
 

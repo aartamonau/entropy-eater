@@ -7,6 +7,7 @@
 /// Attributes' policies.
 static struct nla_policy eater_attr_policy[] = {
   [EATER_ATTR_NONE] = { .type = NLA_UNSPEC, .len = 0 },
+  [EATER_ATTR_FOOD] = { .type = NLA_BINARY }
 };
 
 
@@ -32,12 +33,30 @@ static int
 eater_hello(struct sk_buff *skb, struct genl_info *info);
 
 
+
+/**
+ * Implementation for eater_cmd_t::eater_cmd_feed.
+ *
+ * @param skb
+ * @param info
+ *
+ * @return
+ */
+static int
+eater_feed(struct sk_buff *skb, struct genl_info *info);
+
+
 /// Entropy eater commands.
 static struct genl_ops eater_cmds[] = {
   {
     .cmd    = EATER_CMD_HELLO,
     .policy = eater_attr_policy,
     .doit   = eater_hello,
+  },
+  {
+    .cmd    = EATER_CMD_FEED,
+    .policy = eater_attr_policy,
+    .doit   = eater_feed,
   },
 };
 
@@ -79,4 +98,28 @@ eater_hello(struct sk_buff *skb, struct genl_info *info)
   printk(KERN_INFO "hello from entropy eater server\n");
 
   return 0;
+}
+
+
+static int
+eater_feed(struct sk_buff *skb, struct genl_info *info)
+{
+  u8    *data;
+  size_t data_length;
+
+  struct eater_fsm_event_t event;
+
+  if (!info->attrs[EATER_ATTR_FOOD]) {
+    TRACE_ERR("EATER_ATTR_FOOD attribute not found");
+    return -EINVAL;
+  }
+
+  data        = nla_data(info->attrs[EATER_ATTR_FOOD]);
+  data_length = nla_len(info->attrs[EATER_ATTR_FOOD]);
+
+  event.type = EATER_FSM_EVENT_TYPE_FEED;
+  event.data.feed_data.food  = data;
+  event.data.feed_data.count = data_length;
+
+  return eater_fsm_emit(&event);
 }

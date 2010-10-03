@@ -3,6 +3,7 @@
 #include <linux/workqueue.h>
 
 #include "utils/trace.h"
+#include "utils/entropy.h"
 
 #include "eater_fsm.h"
 #include "eater_params.h"
@@ -72,7 +73,7 @@ struct eater_fsm_event_handler_t {
   {                                                         \
     .with_data = {                                          \
       offsetof(union eater_fsm_event_data_t, _data_member), \
-      _handler                                              \
+      (eater_fsm_event_handler_t) _handler                  \
     }                                                       \
   }                                                         \
 
@@ -110,7 +111,7 @@ struct eater_fsm_event_handler_t {
  * @retval >=0 new state
  * @retval  <0 error code
  */
-int
+static int
 eater_fsm_init_handler(void);
 
 
@@ -121,7 +122,7 @@ eater_fsm_init_handler(void);
  * @retval >=0 new state
  * @retval  <0 error code
  */
-int
+static int
 eater_fsm_die_nobly_handler(void);
 
 
@@ -131,21 +132,36 @@ eater_fsm_die_nobly_handler(void);
  * @retval >=0 new state
  * @retval  <0 error code
  */
-int
+static int
 eater_fsm_hunger_timeout_handler(void);
+
+
+/**
+ * Handles feeding events.
+ *
+ * @param feed_data "food"
+ *
+ * @retval >=0 new state
+ * @retval  <0 error code
+ */
+static int
+eater_fsm_feed_handler(const struct eater_fsm_feed_event_data_t *feed_data);
 
 
 /// Event handlers.
 static const
 struct eater_fsm_event_handler_t handlers[EATER_FSM_EVENT_TYPES_COUNT] = {
-  EVENT_NO_DATA(EATER_FSM_EVENT_TYPE_INIT,
-                eater_fsm_init_handler),
+  EVENT_NO_DATA (EATER_FSM_EVENT_TYPE_INIT,
+                 eater_fsm_init_handler),
 
-  EVENT_NO_DATA(EATER_FSM_EVENT_TYPE_DIE_NOBLY,
-                eater_fsm_die_nobly_handler),
+  EVENT_NO_DATA (EATER_FSM_EVENT_TYPE_DIE_NOBLY,
+                 eater_fsm_die_nobly_handler),
 
-  EVENT_NO_DATA(EATER_FSM_EVENT_TYPE_HUNGER_TIMEOUT,
-                eater_fsm_hunger_timeout_handler),
+  EVENT_NO_DATA (EATER_FSM_EVENT_TYPE_HUNGER_TIMEOUT,
+                 eater_fsm_hunger_timeout_handler),
+
+  EVENT         (EATER_FSM_EVENT_TYPE_FEED,
+                 eater_fsm_feed_handler, feed_data),
 };
 
 
@@ -157,7 +173,7 @@ struct eater_fsm_event_handler_t handlers[EATER_FSM_EVENT_TYPES_COUNT] = {
  * @retval >=0 new state of FSM
  * @retval  <0 error code
  */
-int
+static int
 eater_fsm_event_dispatch(struct eater_fsm_event_t *event);
 
 
@@ -222,7 +238,7 @@ static struct eater_fsm_t fsm;
  *
  * @return string representation of event type
  */
-const char *
+static const char *
 eater_fsm_event_type_to_str(enum eater_fsm_event_type_t type);
 
 
@@ -233,7 +249,7 @@ eater_fsm_event_type_to_str(enum eater_fsm_event_type_t type);
  *
  * @return string representing state name
  */
-const char *
+static const char *
 eater_fsm_state_to_str(enum eater_fsm_state_t state);
 
 
@@ -242,7 +258,7 @@ eater_fsm_state_to_str(enum eater_fsm_state_t state);
  *
  * @param work corresponding work
  */
-void
+static void
 eater_fsm_postponed_event_worker_fn(struct work_struct *work);
 
 
@@ -253,7 +269,7 @@ eater_fsm_postponed_event_worker_fn(struct work_struct *work);
  * @param event_type event type
  * @param delay      delay
  */
-void
+static void
 eater_fsm_postpone_event(enum eater_fsm_event_type_t event_type,
                          unsigned long delay);
 
@@ -262,7 +278,7 @@ eater_fsm_postpone_event(enum eater_fsm_event_type_t event_type,
  * Cancels postponed event.
  *
  */
-void
+static void
 eater_fsm_cancel_postponed_event(void);
 
 
@@ -332,20 +348,21 @@ eater_fsm_emit_simple(enum eater_fsm_event_type_t event_type)
 }
 
 
-const char *
+static const char *
 eater_fsm_event_type_to_str(enum eater_fsm_event_type_t type)
 {
   static const char *strs[EATER_FSM_EVENT_TYPES_COUNT] = {
     "EATER_FSM_EVENT_TYPE_INIT",
     "EATER_FSM_EVENT_TYPE_DIE_NOBLY",
     "EATER_FSM_EVENT_TYPE_HUNGER_TIMEOUT",
+    "EATER_FSM_EVENT_TYPE_FEED",
   };
 
   return strs[type];
 }
 
 
-const char *
+static const char *
 eater_fsm_state_to_str(enum eater_fsm_state_t state)
 {
   static const char *strs[EATER_FSM_STATES_COUNT] = {
@@ -358,7 +375,7 @@ eater_fsm_state_to_str(enum eater_fsm_state_t state)
 }
 
 
-int
+static int
 eater_fsm_event_dispatch(struct eater_fsm_event_t *event)
 {
   const struct eater_fsm_event_handler_t *handler = &handlers[event->type];
@@ -375,7 +392,7 @@ eater_fsm_event_dispatch(struct eater_fsm_event_t *event)
 }
 
 
-int
+static int
 eater_fsm_init_handler(void)
 {
   switch (fsm.state) {
@@ -393,7 +410,7 @@ eater_fsm_init_handler(void)
 }
 
 
-int
+static int
 eater_fsm_die_nobly_handler(void)
 {
   /* \todo */
@@ -405,7 +422,7 @@ eater_fsm_die_nobly_handler(void)
 }
 
 
-int
+static int
 eater_fsm_hunger_timeout_handler(void)
 {
   msg("It's a good time to eat.");
@@ -414,7 +431,18 @@ eater_fsm_hunger_timeout_handler(void)
 }
 
 
-void
+static int
+eater_fsm_feed_handler(const struct eater_fsm_feed_event_data_t *feed_data)
+{
+  TRACE_DEBUG("Feed handler triggered. Message entropy: %u",
+              (unsigned int) entropy_estimate(feed_data->food,
+                                              feed_data->count));
+
+  return fsm.state;
+}
+
+
+static void
 eater_fsm_postponed_event_worker_fn(struct work_struct *work)
 {
   int ret;
@@ -428,7 +456,7 @@ eater_fsm_postponed_event_worker_fn(struct work_struct *work)
 }
 
 
-void
+static void
 eater_fsm_postpone_event(enum eater_fsm_event_type_t event_type,
                          unsigned long delay)
 {
@@ -444,7 +472,7 @@ eater_fsm_postpone_event(enum eater_fsm_event_type_t event_type,
 }
 
 
-void
+static void
 eater_fsm_cancel_postponed_event(void)
 {
   int ret;

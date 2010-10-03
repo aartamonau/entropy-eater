@@ -16,6 +16,7 @@ enum eater_fsm_event_type_t {
   EATER_FSM_EVENT_TYPE_INIT,
   EATER_FSM_EVENT_TYPE_DIE_NOBLY,
   EATER_FSM_EVENT_TYPE_HUNGER_TIMEOUT,
+  EATER_FSM_EVENT_TYPE_FEED,
   __EATER_FSM_EVENT_TYPE_LAST
 };
 
@@ -24,9 +25,17 @@ enum eater_fsm_event_type_t {
 #define EATER_FSM_EVENT_TYPES_COUNT __EATER_FSM_EVENT_TYPE_LAST
 
 
+
+/// Data for #EATER_FSM_EVENT_TYPE_FEED event.
+struct eater_fsm_feed_event_data_t {
+  size_t count;                 /**< Length of the food data. */
+  u8    *food;                  /**< Food. */
+};
+
+
 /// Event specific data encapsulated in a single union.
 union eater_fsm_event_data_t {
-  int data;
+  struct eater_fsm_feed_event_data_t feed_data;
 };
 
 
