@@ -13,6 +13,24 @@
 
 static const char *program;
 
+void
+usage(void)
+{
+  fprintf(stderr,
+          "Usage:\n"
+          "\t%s <global options>\n\n"
+          "\t%s <command> <arguments>\n"
+          "\n"
+          "Global options:\n"
+          "\t--help\n"
+          "\t\tshow this help;\n"
+          "Commands:\n"
+          "\thello\n"
+          "\t\tsend hello message to entropy eater;\n"
+          "\tfeed --food <data>\n"
+          "\t\tfeed entropy eater with data;\n",
+          program, program);
+}
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
 
@@ -48,21 +66,35 @@ struct command_feed_data_t {
 };
 
 
+/// Data for fake global command.
+struct command_global_data_t {
+  bool help;
+};
+
+
 /// Command data.
 union command_data_t {
-  struct command_feed_data_t feed_data;
+  struct command_feed_data_t   feed_data;
+  struct command_global_data_t global_data;
 };
 
 
 /// Command description.
 struct command_t {
-  char                    *name;
-  command_handler_t        handler;
-  command_opts_handler_t   opts_handler;
-  command_opts_validator_t opts_validator;
+  char                    *name;                 /**< Command name. */
+  bool                     requires_connection;  /**< Indicates whether
+                                                  * command requires
+                                                  * connection to the entropy
+                                                  * eater. */
 
-  union command_data_t     data;
+  command_handler_t        handler;               /**< Action to be executed. */
+  command_opts_handler_t   opts_handler;          /**< Handles CLI options. */
+  command_opts_validator_t opts_validator;        /**< Validates CLI options
+                                                   * correctness */
 
+  union command_data_t     data;                  /**< Command's data. */
+
+  /// Options for 'getopt_long'.
   struct option            options[MAX_COMMAND_OPTIONS + 1];
 };
 
@@ -170,49 +202,105 @@ cmd_feed_opts_validator(const struct command_t *command)
 
 struct command_t commands[] = {
   {
-    .name           = "hello",
-    .handler        = cmd_hello_handler,
-    .opts_handler   = NULL,
-    .opts_validator = NULL,
-    .options        = {
-      {0, 0, 0, 0},
+    .name                = "hello",
+    .requires_connection = true,
+    .handler             = cmd_hello_handler,
+    .opts_handler        = NULL,
+    .opts_validator      = NULL,
+
+    .options = {
+      { 0 },
     },
   },
   {
-    .name           = "feed",
-    .handler        = cmd_feed_handler,
-    .opts_handler   = cmd_feed_opts_handler,
-    .opts_validator = cmd_feed_opts_validator,
+    .name                = "feed",
+    .requires_connection = true,
+    .handler             = cmd_feed_handler,
+    .opts_handler        = cmd_feed_opts_handler,
+    .opts_validator      = cmd_feed_opts_validator,
 
-    .data           = {
+    .data = {
       .feed_data = {
         .food = NULL,
       },
     },
 
-    .options        = {
+    .options = {
       { "food", required_argument, NULL, 'f' },
-      {0, 0, 0, 0},
+      { 0 },
     }
   }
 };
 
 
-void
-usage(void)
+/// Name of fake global command.
+#define GLOBAL_COMMAND "global"
+
+
+static int
+cmd_global_opts_handler(struct command_t *command,
+                        const char *optname, char *optvalue)
 {
-  fprintf(stderr,
-          "Usage:\n"
-          "\t%s <command> <arguments>\n"
-          "\n"
-          "Commands:\n"
-          "\thello\n"
-          "\tfeed --food <data>\n", program);
+  if (strcmp(optname, "help") == 0) {
+    command->data.global_data.help = true;
+  } else {
+    assert( false );
+  }
+
+  return 0;
+}
+
+
+static int
+cmd_global_handler(struct command_t *command)
+{
+  /* for now, print usage here not depending on the value of 'help' because
+   * no other global options are handled at all */
+  usage();
+}
+
+
+/// Fake command to handle global options.
+struct command_t global_command = {
+  .name                = GLOBAL_COMMAND,
+  .requires_connection = false,
+  .handler             = cmd_global_handler,
+  .opts_handler        = cmd_global_opts_handler,
+  .opts_validator      = NULL,
+
+  .data = {
+    .global_data = {
+      .help = false
+    },
+  },
+
+  .options = {
+    { "help", no_argument, NULL, 'h' },
+    { 0 }
+  }
+};
+
+
+
+
+/**
+ * Distinguishes command names from commands.
+ *
+ * @param name command/option to check
+ *
+ * @retval true  name is option
+ * @retval false name is command
+ */
+static bool
+looks_like_option(const char *name)
+{
+  return name[0] == '-';
 }
 
 
 /**
- * Finds command description by its name.
+ * Finds command description by its name. If 'name' looks like option
+ * fallbacks to #global_command.
  *
  * @param name command name
  *
@@ -222,6 +310,10 @@ usage(void)
 static struct command_t *
 find_command(char *name)
 {
+  if (looks_like_option(name)) {
+    return &global_command;
+  }
+
   for (int i = 0; i < ARRAY_SIZE(commands); ++i) {
     if (strcmp(name, commands[i].name) == 0) {
       return &commands[i];
@@ -236,12 +328,18 @@ find_command(char *name)
  * Removes command name from 'argv' and modifies 'argc' accordingly. So that
  * they can be used in the call to getopt().
  *
+ * @param command command return by find_command()
  * @param argc
  * @param argv
  */
 static void
-remove_command(int *argc, char *argv[])
+remove_command(const struct command_t *command, int *argc, char *argv[])
 {
+  /* nothing to do for global command */
+  if (command == &global_command) {
+    return;
+  }
+
   *argc -= 1;
 
   for (int i = 1; i < *argc; ++i) {
@@ -265,13 +363,13 @@ main(int argc, char *argv[])
   }
 
   command = find_command(argv[1]);
+
   if (command == NULL) {
-    error("unknown command '%s'\n", argv[1]);
-    usage();
-    return EXIT_FAILURE;
+      error("unknown command '%s'", argv[1]);
+      return EXIT_FAILURE;
   }
 
-  remove_command(&argc, argv);
+  remove_command(command, &argc, argv);
 
   while (true) {
     int  optind = 0;
@@ -301,10 +399,12 @@ main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  ret = eater_connect();
-  if (ret != EATER_OK) {
-    error("cannot connect to entropy eater");
-    return EXIT_FAILURE;
+  if (command->requires_connection) {
+    ret = eater_connect();
+    if (ret != EATER_OK) {
+      error("cannot connect to entropy eater");
+      return EXIT_FAILURE;
+    }
   }
 
   ret = command_handler(command);
@@ -315,7 +415,9 @@ main(int argc, char *argv[])
     ret = EXIT_SUCCESS;
   }
 
-  eater_disconnect();
+  if (command->requires_connection) {
+    eater_disconnect();
+  }
 
   return ret;
 }
