@@ -68,7 +68,7 @@ static inline int __deviate_value(int value, unsigned int deviation)
 
 
 /// Critically high entropy balance level that causes eater's death.
-#define EATER_ENTROPY_BALANEC_CRITICALLY_HIGH 10000
+#define EATER_ENTROPY_BALANCE_CRITICALLY_HIGH 10000
 
 
 

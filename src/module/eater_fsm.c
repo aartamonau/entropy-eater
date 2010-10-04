@@ -497,7 +497,7 @@ eater_fsm_init_handler(void)
   default:
     TRACE_ERR("Invalid internal state (%s) for INIT event.",
               eater_fsm_state_to_str(fsm.state));
-    return -EINVAL;
+    ASSERT( false );
   }
 
   return EATER_FSM_STATE_IDLE;
@@ -548,11 +548,46 @@ eater_fsm_hunger_timeout_handler(void)
 static int
 eater_fsm_feed_handler(const struct eater_fsm_feed_event_data_t *feed_data)
 {
-  TRACE_DEBUG("Feed handler triggered. Message entropy: %u",
-              (unsigned int) entropy_estimate(feed_data->food,
-                                              feed_data->count));
+  int old_balance;
+  int new_balance;
+  unsigned int entropy =
+    entropy_estimate(feed_data->food, feed_data->count) * feed_data->count;
 
-  return fsm.state;
+  enum eater_fsm_state_t new_state;
+
+  old_balance = fsm.entropy_balance;
+  new_balance = old_balance + entropy;
+
+  switch (fsm.state) {
+  case EATER_FSM_STATE_IDLE:
+    new_state = EATER_FSM_STATE_IDLE;
+    break;
+  case EATER_FSM_STATE_HUNGRY:
+    if (new_balance >= 0) {
+      new_state = EATER_FSM_STATE_IDLE;
+    } else {
+      new_state = EATER_FSM_STATE_HUNGRY;
+    }
+    break;
+  default:
+    TRACE_ERR("Invalid internal state (%s) for FEED event.",
+              eater_fsm_state_to_str(fsm.state));
+    ASSERT( false );
+  }
+
+  fsm.entropy_balance = new_balance;
+
+  TRACE_INFO("Entropy balance changed from %d to %d", old_balance, new_balance);
+  msg("Got %d bits of entropy. Thank you.", entropy);
+
+  if (fsm.entropy_balance > EATER_ENTROPY_BALANCE_CRITICALLY_HIGH) {
+    TRACE_INFO("Entropy balance rose to %d. Critical level is %d.",
+               new_balance, EATER_ENTROPY_BALANCE_CRITICALLY_HIGH);
+
+    eater_fsm_die();
+  }
+
+  return new_state;
 }
 
 
