@@ -227,6 +227,9 @@ postponed_event_to_class(struct postponed_event_t *event);
 struct eater_fsm_t {
   enum eater_fsm_state_t state; /**< Current state. */
 
+  int  entropy_balance;          /**< Consumed entropy balance. Should be
+                                  * close to zero. */
+
   /// Postponed events. One for each class.
   struct postponed_event_t postponed_events[POSTPONED_EVENT_CLASSES_COUNT];
 };
@@ -345,6 +348,13 @@ eater_fsm_cancel_postponed_event(enum postponed_event_class_t class);
  */
 static void
 eater_fsm_cancel_all_postponed_events(void);
+
+
+/**
+ * Dies loudly.
+ */
+static void __noreturn
+eater_fsm_die(void);
 
 
 /**
@@ -467,6 +477,8 @@ eater_fsm_init_handler(void)
 {
   switch (fsm.state) {
   case EATER_FSM_STATE_IDLE:
+    fsm.entropy_balance = 0;
+
     eater_fsm_postpone_event(POSTPONED_EVENT_CLASS_HUNGER,
                              EATER_FSM_EVENT_TYPE_HUNGER_TIMEOUT,
                              EATER_HUNGER_TIMEOUT);
@@ -496,7 +508,27 @@ eater_fsm_die_nobly_handler(void)
 static int
 eater_fsm_hunger_timeout_handler(void)
 {
+  int old_balance = fsm.entropy_balance;
+
   msg("It's a good time to eat.");
+
+  fsm.entropy_balance -= EATER_HUNGER_ENTROPY_REQUIRED;
+
+  TRACE_INFO("Entropy balance changed from %d to %d",
+             old_balance, fsm.entropy_balance);
+
+  if (fsm.entropy_balance < EATER_ENTROPY_BALANCE_CRITICALLY_LOW) {
+    TRACE_INFO("Entropy balance fell to %d. Critical level is %d.",
+               fsm.entropy_balance, EATER_ENTROPY_BALANCE_CRITICALLY_LOW);
+
+    eater_fsm_die();
+  }
+
+  /* rescheduling hungriness feeling */
+  eater_fsm_postpone_event(POSTPONED_EVENT_CLASS_HUNGER,
+                           EATER_FSM_EVENT_TYPE_HUNGER_TIMEOUT,
+                           EATER_HUNGER_TIMEOUT);
+
 
   return EATER_FSM_STATE_HUNGRY;
 }
@@ -616,4 +648,12 @@ postponed_event_to_class(struct postponed_event_t *event)
   ASSERT_VALID_CLASS( class );
 
   return class;
+}
+
+
+static void
+eater_fsm_die(void)
+{
+  msg("You've been a bad owner. I'm dying in agony.");
+  panic("DEAD");
 }

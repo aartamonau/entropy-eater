@@ -52,4 +52,24 @@ static inline int __deviate_value(int value, unsigned int deviation)
   __deviate_value(__EATER_STARVING_TIMEOUT, EATER_TIME_DEVIATION)
 
 
+/// Bounds deviation of entropy quantity that should be eaten when eater's
+/// hungry.
+#define EATER_ENTROPY_DEVIATION 10
+
+
+/// How much entropy should be consumed after eater got hungry.
+#define __EATER_HUNGER_ENTROPY_REQUIRED 1024
+#define EATER_HUNGER_ENTROPY_REQUIRED \
+  __deviate_value(__EATER_HUNGER_ENTROPY_REQUIRED, EATER_ENTROPY_DEVIATION)
+
+
+/// Critically low entropy balance level that causes eater's death.
+#define EATER_ENTROPY_BALANCE_CRITICALLY_LOW -10000
+
+
+/// Critically high entropy balance level that causes eater's death.
+#define EATER_ENTROPY_BALANEC_CRITICALLY_HIGH 10000
+
+
+
 #endif /* _EATER_PARAMS_H_ */
