@@ -177,14 +177,58 @@ static int
 eater_fsm_event_dispatch(struct eater_fsm_event_t *event);
 
 
+/// Different classes of events which are sensible to postpone.
+enum postponed_event_class_t {
+    POSTPONED_EVENT_CLASS_HUNGER,     /**< Events notifying about hungriness
+                                       * changes.*/
+    POSTPONED_EVENT_CLASS_DAYTIME,    /**< Events notifying about day time
+                                       * changes. */
+    POSTPONED_EVENT_CLASS_GENERIC,    /**< All other events. */
+    __POSTPONED_EVENT_CLASS_LAST,
+};
+
+
+/// Number of postponed events' classes
+#define POSTPONED_EVENT_CLASSES_COUNT __POSTPONED_EVENT_CLASS_LAST
+
+
+/**
+ * Returns name for class of postponed events.
+ *
+ * \param class class
+ *
+ * \return string representing postponed event class' name
+ */
+static const char *
+postponed_event_class_to_str(enum postponed_event_class_t class);
+
+
+/// Event that can be postponed.
+struct postponed_event_t {
+    enum eater_fsm_event_type_t event_type; /**< Event type. */
+    struct delayed_work         work;       /**< Emits the event when time
+                                             * comes. */
+};
+
+
+/**
+ * Returns class of postponed event by its pointer. For this to work the event
+ * must be stored in fsm::postponed_events.
+ *
+ * \param event postponed event
+ *
+ * \return postponed event class
+ */
+static enum postponed_event_class_t
+postponed_event_to_class(struct postponed_event_t *event);
+
+
 /// FSM context.
 struct eater_fsm_t {
   enum eater_fsm_state_t state; /**< Current state. */
 
-  enum eater_fsm_event_type_t postponed_event;      /**< Postponed event
-                                                     * type. */
-  struct delayed_work         postponed_event_work; /**< Handles postponed
-                                                     * events. */
+  /// Postponed events. One for each class.
+  struct postponed_event_t postponed_events[POSTPONED_EVENT_CLASSES_COUNT];
 };
 
 
@@ -201,7 +245,7 @@ static struct eater_fsm_t fsm;
  * @param type event type to check
  */
 #define ASSERT_VALID_EVENT_TYPE(type) \
-  ASSERT( (type) < EATER_FSM_EVENT_TYPES_COUNT )
+  ASSERT( (enum eater_fsm_event_type_t) (type) < EATER_FSM_EVENT_TYPES_COUNT )
 
 
 /**
@@ -219,7 +263,7 @@ static struct eater_fsm_t fsm;
  * @param state state to check
  */
 #define ASSERT_VALID_STATE(state) \
-  ASSERT( (state) < EATER_FSM_STATES_COUNT )
+  ASSERT( (enum eater_fsm_state_t) (state) < EATER_FSM_STATES_COUNT )
 
 
 /**
@@ -229,6 +273,16 @@ static struct eater_fsm_t fsm;
  */
 #define ASSERT_NO_DATA_EVENT_TYPE(_type) \
   ASSERT( handlers[(_type)].type == EATER_FSM_EVENT_HANDLER_NO_DATA )
+
+
+/**
+ * Checks whether postponed event class is valid. Otherwise BUG()s.
+ *
+ * @param class postponed event class to check
+ */
+#define ASSERT_VALID_CLASS(class) \
+  ASSERT( \
+    (enum postponed_event_class_t) (class) < POSTPONED_EVENT_CLASSES_COUNT )
 
 
 /**
@@ -266,20 +320,31 @@ eater_fsm_postponed_event_worker_fn(struct work_struct *work);
  * Postpones event to the future. Handler for the event must not take
  * arguments.
  *
+ * @param class      class to schedule event on
  * @param event_type event type
  * @param delay      delay
  */
 static void
-eater_fsm_postpone_event(enum eater_fsm_event_type_t event_type,
+eater_fsm_postpone_event(enum postponed_event_class_t class,
+                         enum eater_fsm_event_type_t event_type,
                          unsigned long delay);
 
 
 /**
  * Cancels postponed event.
  *
+ * @param class event class to cancel event on
  */
 static void
-eater_fsm_cancel_postponed_event(void);
+eater_fsm_cancel_postponed_event(enum postponed_event_class_t class);
+
+
+/**
+ * Cancels all postponed events.
+ *
+ */
+static void
+eater_fsm_cancel_all_postponed_events(void);
 
 
 /**
@@ -300,9 +365,14 @@ EATER_STATUS_ATTR(fsm_state, eater_fsm_state_attr_show);
 int
 eater_fsm_init(void)
 {
+  int i;
+
   fsm.state = EATER_FSM_STATE_IDLE;
-  INIT_DELAYED_WORK(&fsm.postponed_event_work,
-                    eater_fsm_postponed_event_worker_fn);
+
+  for (i = 0; i < POSTPONED_EVENT_CLASSES_COUNT; ++i) {
+    INIT_DELAYED_WORK(&fsm.postponed_events[i].work,
+                      eater_fsm_postponed_event_worker_fn);
+  }
 
   return eater_status_create_file(&eater_attr_fsm_state);
 }
@@ -397,7 +467,8 @@ eater_fsm_init_handler(void)
 {
   switch (fsm.state) {
   case EATER_FSM_STATE_IDLE:
-    eater_fsm_postpone_event(EATER_FSM_EVENT_TYPE_HUNGER_TIMEOUT,
+    eater_fsm_postpone_event(POSTPONED_EVENT_CLASS_HUNGER,
+                             EATER_FSM_EVENT_TYPE_HUNGER_TIMEOUT,
                              EATER_HUNGER_TIMEOUT);
     break;
   default:
@@ -415,8 +486,8 @@ eater_fsm_die_nobly_handler(void)
 {
   /* \todo */
 
-  msg("It was a great experience, Sir");
-  eater_fsm_cancel_postponed_event();
+  msg("It was a great experience, Sir!");
+  eater_fsm_cancel_all_postponed_events();
 
   return EATER_FSM_STATE_DEAD;
 }
@@ -446,7 +517,20 @@ static void
 eater_fsm_postponed_event_worker_fn(struct work_struct *work)
 {
   int ret;
-  struct eater_fsm_event_t event = { .type = fsm.postponed_event, };
+  struct eater_fsm_event_t      event;
+  struct postponed_event_t     *postponed_event;
+  enum postponed_event_class_t  class;
+
+  postponed_event = container_of(to_delayed_work(work),
+                                 struct postponed_event_t, work);
+  class           = postponed_event_to_class(postponed_event);
+
+  event.type = postponed_event->event_type;
+
+  TRACE_DEBUG("Processing postponed event %s of class %s",
+              eater_fsm_event_type_to_str(event.type),
+              postponed_event_class_to_str(class));
+
 
   ret = eater_fsm_emit(&event);
   if (ret != 0) {
@@ -457,30 +541,47 @@ eater_fsm_postponed_event_worker_fn(struct work_struct *work)
 
 
 static void
-eater_fsm_postpone_event(enum eater_fsm_event_type_t event_type,
+eater_fsm_postpone_event(enum postponed_event_class_t class,
+                         enum eater_fsm_event_type_t event_type,
                          unsigned long delay)
 {
+  ASSERT_VALID_CLASS( class );
   ASSERT_VALID_EVENT_TYPE( event_type );
   ASSERT_NO_DATA_EVENT_TYPE( event_type );
 
-  TRACE_DEBUG("Postponing event %s to the future (%us)",
+  TRACE_DEBUG("Postponing event %s (class: %s) to the future (%us)",
               eater_fsm_event_type_to_str(event_type),
+              postponed_event_class_to_str(class),
               jiffies_to_msecs(delay) / 1000);
 
-  fsm.postponed_event = event_type;
-  schedule_delayed_work(&fsm.postponed_event_work, delay);
+  fsm.postponed_events[class].event_type = event_type;
+
+  schedule_delayed_work(&fsm.postponed_events[class].work, delay);
 }
 
 
 static void
-eater_fsm_cancel_postponed_event(void)
+eater_fsm_cancel_postponed_event(enum postponed_event_class_t class)
 {
   int ret;
 
-  ret = cancel_delayed_work(&fsm.postponed_event_work);
+  ASSERT_VALID_CLASS( class );
+
+  ret = cancel_delayed_work(&fsm.postponed_events[class].work);
   if (!ret) {
     /* ensuring that work terminated */
-    flush_work(&fsm.postponed_event_work.work);
+    flush_delayed_work(&fsm.postponed_events[class].work);
+  }
+}
+
+
+static void
+eater_fsm_cancel_all_postponed_events(void)
+{
+  int i;
+
+  for (i = 0; i < POSTPONED_EVENT_CLASSES_COUNT; ++i) {
+    eater_fsm_cancel_postponed_event(i);
   }
 }
 
@@ -489,4 +590,30 @@ static ssize_t
 eater_fsm_state_attr_show(const char *attr, char *buffer)
 {
   return snprintf(buffer, PAGE_SIZE, "%s\n", eater_fsm_state_to_str(fsm.state));
+}
+
+
+static const char *
+postponed_event_class_to_str(enum postponed_event_class_t class)
+{
+  static const char *strs[] = {
+    [POSTPONED_EVENT_CLASS_HUNGER]  = "POSTPONED_EVENT_CLASS_HUNGER",
+    [POSTPONED_EVENT_CLASS_DAYTIME] = "POSTPONED_EVENT_CLASS_DAYTIME",
+    [POSTPONED_EVENT_CLASS_GENERIC] = "POSTPONED_EVENT_CLASS_GENERIC",
+  };
+
+  ASSERT( class < POSTPONED_EVENT_CLASSES_COUNT );
+
+  return strs[class];
+}
+
+
+static enum postponed_event_class_t
+postponed_event_to_class(struct postponed_event_t *event)
+{
+  enum postponed_event_class_t class = event - fsm.postponed_events;
+
+  ASSERT_VALID_CLASS( class );
+
+  return class;
 }
