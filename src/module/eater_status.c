@@ -150,3 +150,38 @@ eater_status_remove_all(void)
     eater_status_remove_file(eater_attr);
   }
 }
+
+
+void
+eater_status_remove_files(struct eater_status_attribute_t eater_attrs[],
+                          size_t count)
+{
+  int i;
+
+  for (i = 0; i < count; ++i) {
+    eater_status_remove_file(&eater_attrs[i]);
+  }
+}
+
+
+int
+eater_status_create_files(struct eater_status_attribute_t eater_attrs[],
+                          size_t count)
+{
+  int i;
+  int j;
+  int ret;
+
+  for (i = 0; i < count; ++i) {
+    ret = eater_status_create_file(&eater_attrs[i]);
+    if (ret != 0) {
+      for (j = i - 1; j >= 0; --j) {
+        eater_status_remove_file(&eater_attrs[j]);
+      }
+
+      return ret;
+    }
+  }
+
+  return 0;
+}

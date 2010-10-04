@@ -38,19 +38,30 @@ typedef ssize_t (*eater_attribute_show_t)(const char *name, char *buffer);
 
 
 /**
- * Initializes statically allocated eater status attributes.
+ * Initializer for eater_status_attribute_t structures.
  *
  * @param _name attribute name
  * @param _show function to be called when one reads attribute's file
  */
 #define EATER_STATUS_ATTR(_name, _show)                       \
+  { .attr     = { .name = __stringify(_name),                 \
+                  .mode = S_IRUGO,                            \
+                },                                            \
+    .show     = _show,                                        \
+    .has_file = false,                                        \
+  }
+
+
+/**
+ * Declares static structure representing status attribute. Name of the
+ * declared structure is of the for 'eater_attr_##_name'.
+ *
+ * @param _name attribute name
+ * @param _show function to be called when one reads attribute's file
+ */
+#define EATER_STATUS_ATTR_DECLARE(_name, _show)               \
   static struct eater_status_attribute_t eater_attr_##_name = \
-      { .attr     = { .name = __stringify(_name),             \
-                      .mode = S_IRUGO,                        \
-                    },                                        \
-        .show     = _show,                                    \
-        .has_file = false,                                    \
-      }
+    EATER_STATUS_ATTR(_name, _show)
 
 
 /**
@@ -86,6 +97,21 @@ eater_status_create_file(struct eater_status_attribute_t *eater_attr);
 
 
 /**
+ * Creates files corresponding to attributes. In case of errors all previously
+ * created files are removed.
+ *
+ * @param eater_attrs attributes
+ * @param count       number of elements in 'eater_attrs' array
+ *
+ * @retval  0 files created successfully
+ * @retval <0 error occurred
+ */
+int
+eater_status_create_files(struct eater_status_attribute_t eater_attrs[],
+                          size_t count);
+
+
+/**
  * Removes file entry corresponding to the attribute from status directory.
  *
  * @param eater_attr attribute
@@ -95,10 +121,22 @@ eater_status_remove_file(struct eater_status_attribute_t *eater_attr);
 
 
 /**
+ * Removes file entries corresponding to the attributes.
+ *
+ * @param eater_attrs attributes
+ * @param count       number of elements in 'eater_attrs' array
+ */
+void
+eater_status_remove_files(struct eater_status_attribute_t eater_attrs[],
+                          size_t count);
+
+
+/**
  * Removes all attributes from status directory.
  *
  */
 void
 eater_status_remove_all(void);
+
 
 #endif /* _EATER_STATUS_H_ */

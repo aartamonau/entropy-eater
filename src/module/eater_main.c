@@ -14,7 +14,7 @@ ssize_t show(const char *name, char *buffer)
 }
 
 
-EATER_STATUS_ATTR(attr, show);
+EATER_STATUS_ATTR_DECLARE(attr, show);
 
 
 int __init eater_init(void)
