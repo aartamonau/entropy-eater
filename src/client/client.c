@@ -11,11 +11,14 @@
 #include "eater.h"
 
 
+static const char *program;
+
+
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
 
 
 #define error(msg, ...) \
-  fprintf(stderr, msg "\n", ##__VA_ARGS__)
+  fprintf(stderr, "%s: " msg "\n", program, ##__VA_ARGS__)
 
 
 struct command_t;
@@ -88,7 +91,7 @@ command_opts_handler(struct command_t *command,
     return command->opts_handler(command, optname, optvalue);
   }
 
-  error("Command '%s' does not expect any options.", command->name);
+  error("'%s' does not expect any options", command->name);
   return -1;
 }
 
@@ -116,7 +119,7 @@ cmd_hello_handler(struct command_t *command)
 {
   int ret = eater_cmd_hello();
   if (ret != EATER_OK) {
-    error("Cannot send 'hello' to entropy eater: %m.", errno);
+    error("cannot send 'HELLO' to entropy eater: %m", errno);
     return -1;
   }
 
@@ -130,7 +133,7 @@ cmd_feed_handler(struct command_t *command)
   int ret = eater_cmd_feed(command->data.feed_data.food,
                            command->data.feed_data.count);
   if (ret != EATER_OK) {
-    error("Cannot send 'FEED' command to eater: %m.", errno);
+    error("cannot send 'FEED' command to eater: %m", errno);
     return -1;
   }
   return 0;
@@ -196,7 +199,7 @@ struct command_t commands[] = {
 
 
 void
-usage(char *program)
+usage(void)
 {
   fprintf(stderr,
           "Usage:\n"
@@ -252,17 +255,19 @@ main(int argc, char *argv[])
 {
   int   ret;
 
+  program = argv[0];
+
   struct command_t *command;
 
   if (argc < 2) {
-    usage(argv[0]);
+    usage();
     return EXIT_FAILURE;
   }
 
   command = find_command(argv[1]);
   if (command == NULL) {
-    error("Unknown command: %s\n", argv[1]);
-    usage(argv[0]);
+    error("unknown command '%s'\n", argv[1]);
+    usage();
     return EXIT_FAILURE;
   }
 
@@ -298,7 +303,7 @@ main(int argc, char *argv[])
 
   ret = eater_connect();
   if (ret != EATER_OK) {
-    error("Cannot connect to entropy eater.");
+    error("cannot connect to entropy eater");
     return EXIT_FAILURE;
   }
 
