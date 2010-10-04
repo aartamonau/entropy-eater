@@ -38,8 +38,16 @@ typedef int (*command_handler_t)(struct command_t *command);
 #define MAX_COMMAND_OPTIONS 10
 
 
+/// Data for FEED command.
+struct command_feed_data_t {
+  uint8_t *food;
+  size_t   count;
+};
+
+
 /// Command data.
 union command_data_t {
+  struct command_feed_data_t feed_data;
 };
 
 
@@ -116,6 +124,47 @@ cmd_hello_handler(struct command_t *command)
 }
 
 
+static int
+cmd_feed_handler(struct command_t *command)
+{
+  int ret = eater_cmd_feed(command->data.feed_data.food,
+                           command->data.feed_data.count);
+  if (ret != EATER_OK) {
+    error("Cannot send 'FEED' command to eater: %m.", errno);
+    return -1;
+  }
+  return 0;
+}
+
+
+static int
+cmd_feed_opts_handler(struct command_t *command,
+                      const char *optname, char *optvalue)
+{
+  if (strcmp(optname, "food") == 0) {
+    command->data.feed_data.food  = optvalue;
+    command->data.feed_data.count = strlen(optvalue);
+  } else {
+    /* this is impossible */
+    assert( false );
+  }
+
+  return 0;
+}
+
+
+static bool
+cmd_feed_opts_validator(const struct command_t *command)
+{
+  if (command->data.feed_data.food == NULL) {
+    error("'food' parameter is required for '%s' command", command->name);
+    return false;
+  }
+
+  return true;
+}
+
+
 struct command_t commands[] = {
   {
     .name           = "hello",
@@ -126,6 +175,23 @@ struct command_t commands[] = {
       {0, 0, 0, 0},
     },
   },
+  {
+    .name           = "feed",
+    .handler        = cmd_feed_handler,
+    .opts_handler   = cmd_feed_opts_handler,
+    .opts_validator = cmd_feed_opts_validator,
+
+    .data           = {
+      .feed_data = {
+        .food = NULL,
+      },
+    },
+
+    .options        = {
+      { "food", required_argument, NULL, 'f' },
+      {0, 0, 0, 0},
+    }
+  }
 };
 
 
@@ -137,7 +203,8 @@ usage(char *program)
           "\t%s <command> <arguments>\n"
           "\n"
           "Commands:\n"
-          "\thello\n", program);
+          "\thello\n"
+          "\tfeed --food <data>\n", program);
 }
 
 
