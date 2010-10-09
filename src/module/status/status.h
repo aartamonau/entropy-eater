@@ -23,8 +23,7 @@ struct status_attr_t;
 
 
 /// Typedef for functions showing attributes' values.
-typedef ssize_t
-(*status_attr_show_t)(const char *, void *, char *buffer);
+typedef ssize_t (*status_attr_show_t)(const char *, void *, char *buffer);
 
 
 /// Structure representing an attribute in status directory.
