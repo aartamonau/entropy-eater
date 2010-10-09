@@ -39,4 +39,18 @@
 #endif
 
 
+/* Utility assertions */
+
+
+/**
+ * Asserts that given value is in the specific range.
+ *
+ * @param value value to check
+ * @param min   minimum valid value
+ * @param max   maximum valid value
+ */
+#define ASSERT_IN_RANGE(value, min, max) \
+  ASSERT( (value) >= (min) && (value) <= max )
+
+
 #endif /* _ASSERT_H_ */
