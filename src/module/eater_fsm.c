@@ -5,9 +5,10 @@
 #include "utils/trace.h"
 #include "utils/entropy.h"
 
+#include "status/status.h"
+
 #include "eater_fsm.h"
 #include "eater_params.h"
-#include "eater_status.h"
 
 
 /**
@@ -365,20 +366,20 @@ eater_fsm_die(void);
  * @retval  <0 error code;
  */
 static ssize_t
-eater_fsm_state_attr_show(const char *, char *);
+eater_fsm_state_attr_show(const char *, void *, char *);
 
 
 /**
  * Shows entropy balance.
  */
 static ssize_t
-eater_fsm_entropy_balance_attr_show(const char *, char *);
+eater_fsm_entropy_balance_attr_show(const char *, void *, char *);
 
 
 /// Exported via sysfs attributes.
-static struct eater_status_attribute_t eater_fsm_status_attrs[] = {
-  EATER_STATUS_ATTR(fsm_state,       eater_fsm_state_attr_show),
-  EATER_STATUS_ATTR(entropy_balance, eater_fsm_entropy_balance_attr_show),
+static struct status_attr_t fsm_status_attrs[] = {
+  STATUS_ATTR(fsm_state,       eater_fsm_state_attr_show,           NULL),
+  STATUS_ATTR(entropy_balance, eater_fsm_entropy_balance_attr_show, NULL),
 };
 
 
@@ -394,8 +395,7 @@ eater_fsm_init(void)
                       eater_fsm_postponed_event_worker_fn);
   }
 
-  return eater_status_create_files(eater_fsm_status_attrs,
-                                   ARRAY_SIZE(eater_fsm_status_attrs));
+  return status_create_files(fsm_status_attrs, ARRAY_SIZE(fsm_status_attrs));
 }
 
 
@@ -665,14 +665,14 @@ eater_fsm_cancel_all_postponed_events(void)
 
 
 static ssize_t
-eater_fsm_state_attr_show(const char *attr, char *buffer)
+eater_fsm_state_attr_show(const char *attr, void *data, char *buffer)
 {
   return snprintf(buffer, PAGE_SIZE, "%s\n", eater_fsm_state_to_str(fsm.state));
 }
 
 
 static ssize_t
-eater_fsm_entropy_balance_attr_show(const char *attr, char *buffer)
+eater_fsm_entropy_balance_attr_show(const char *attr, void *data, char *buffer)
 {
   return snprintf(buffer, PAGE_SIZE, "%d\n", fsm.entropy_balance);
 }

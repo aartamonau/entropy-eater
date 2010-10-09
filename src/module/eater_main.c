@@ -2,19 +2,10 @@
 #include <linux/module.h>
 
 #include "utils/trace.h"
+#include "status/status.h"
 
 #include "eater_server.h"
-#include "eater_status.h"
 #include "eater_fsm.h"
-
-
-ssize_t show(const char *name, char *buffer)
-{
-  return snprintf(buffer, PAGE_SIZE, "%s: test\n", name);
-}
-
-
-EATER_STATUS_ATTR_DECLARE(attr, show);
 
 
 int __init eater_init(void)
@@ -27,12 +18,10 @@ int __init eater_init(void)
     return ret;
   }
 
-  ret = eater_status_create();
+  ret = status_create();
   if (ret != 0) {
     goto error_server_unregister;
   }
-
-  eater_status_create_file(&eater_attr_attr);
 
   ret = eater_fsm_init();
   if (ret != 0) {
@@ -49,8 +38,8 @@ int __init eater_init(void)
   return 0;
 
 error_status_remove:
-  eater_status_remove_all();
-  eater_status_remove();
+  status_remove_all_files();
+  status_remove();
 error_server_unregister:
   ret = eater_server_unregister();
   if (ret != 0) {
@@ -78,8 +67,8 @@ void __exit eater_exit(void)
   }
 
   /* removing all the exported files to make life easier for other modules */
-  eater_status_remove_all();
-  eater_status_remove();
+  status_remove_all_files();
+  status_remove();
 }
 
 
