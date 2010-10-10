@@ -140,9 +140,18 @@ feeding_fsm_feed_handler(enum feeding_state_t state,
 
 /// Feeding FSM event handlers.
 struct fsm_event_handler_t feeding_fsm_handlers[FEEDING_EVENTS_COUNT] = {
-  EVENT_NO_DATA (FEEDING_EVENT_INIT,         feeding_fsm_init_handler),
-  EVENT_NO_DATA (FEEDING_EVENT_FEEDING_TIME, feeding_fsm_feeding_time_handler),
-  EVENT         (FEEDING_EVENT_FEED,         feeding_fsm_feed_handler)
+  EVENT_NO_DATA (
+    FEEDING_EVENT_INIT,
+    (fsm_event_handler_no_data_t) feeding_fsm_init_handler
+  ),
+  EVENT_NO_DATA (
+    FEEDING_EVENT_FEEDING_TIME,
+    (fsm_event_handler_no_data_t) feeding_fsm_feeding_time_handler
+  ),
+  EVENT         (
+    FEEDING_EVENT_FEED,
+    (fsm_event_handler_t)         feeding_fsm_feed_handler
+  )
 };
 
 

@@ -57,14 +57,14 @@ struct fsm_event_handler_t {
 #define _EVENT_HANDLER(_handler)                            \
   {                                                         \
     .with_data = {                                          \
-      (fsm_event_handler_t) _handler                        \
+      _handler                                              \
     }                                                       \
   }                                                         \
 
 
 /// Not supposed to be used directly.
 #define _EVENT_HANDLER_NO_DATA(_handler) \
-  { .no_data = { (fsm_event_handler_no_data_t) _handler } }
+  { .no_data = { _handler } }
 
 
 /**

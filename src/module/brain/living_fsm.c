@@ -89,8 +89,14 @@ living_fsm_die_handler(enum living_state_t state,
 
 
 struct fsm_event_handler_t living_fsm_handlers[LIVING_EVENTS_COUNT] = {
-  EVENT_NO_DATA (LIVING_EVENT_DIE_NOBLY, living_fsm_die_nobly_handler),
-  EVENT_NO_DATA (LIVING_EVENT_DIE,       living_fsm_die_handler),
+  EVENT_NO_DATA (
+    LIVING_EVENT_DIE_NOBLY,
+    (fsm_event_handler_no_data_t) living_fsm_die_nobly_handler
+  ),
+  EVENT_NO_DATA (
+    LIVING_EVENT_DIE,
+    (fsm_event_handler_no_data_t) living_fsm_die_handler
+  ),
 };
 
 
