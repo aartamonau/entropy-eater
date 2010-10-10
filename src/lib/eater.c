@@ -250,3 +250,17 @@ out:
   nlmsg_free(msg);
   return ret;
 }
+
+
+int
+eater_cmd_sweep(void)
+{
+  return eater_send_noarg_cmd(EATER_CMD_SWEEP);
+}
+
+
+int
+eater_cmd_disinfect(void)
+{
+  return eater_send_noarg_cmd(EATER_CMD_DISINFECT);
+}

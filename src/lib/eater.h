@@ -61,4 +61,24 @@ int
 eater_cmd_feed(uint8_t *data, size_t count);
 
 
+/**
+ * Sweeps eater's room.
+ *
+ *
+ * @return
+ */
+int
+eater_cmd_sweep(void);
+
+
+/**
+ * Disinfects eater's room.
+ *
+ *
+ * @return
+ */
+int
+eater_cmd_disinfect(void);
+
+
 #endif /* _EATER_H_ */

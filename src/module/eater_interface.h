@@ -36,6 +36,8 @@ enum eater_attr_t {
 enum eater_cmd_t {
   EATER_CMD_HELLO,                /**< Says hello to entropy eater. */
   EATER_CMD_FEED,                 /**< Feeds entropy eater with data. */
+  EATER_CMD_SWEEP,                /**< Sweeps entropy eater's room. */
+  EATER_CMD_DISINFECT,            /**< Disinfects entropy eater's room. */
   __EATER_CMD_MAX
 };
 
