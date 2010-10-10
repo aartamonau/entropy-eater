@@ -228,4 +228,14 @@ void
 fsm_cancel_postponed_events(struct fsm_t *fsm);
 
 
+/**
+ * Cancels all the events of specific types.
+ *
+ * @param fsm   FSM
+ * @param event event
+ */
+void
+fsm_cancel_postponed_event_by_type(struct fsm_t *fsm, int event);
+
+
 #endif /* _FSM_H_ */

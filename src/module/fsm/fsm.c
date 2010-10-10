@@ -263,6 +263,48 @@ fsm_cancel_postponed_events(struct fsm_t *fsm)
   }
 
   spin_unlock(&fsm->postponed_events.lock);
+
+  atomic_set(&fsm->postponed_events.cancel, 0);
+}
+
+
+void
+fsm_cancel_postponed_event_by_type(struct fsm_t *fsm, int event_type)
+{
+  int ret;
+  struct fsm_postponed_event_t *event;
+  struct fsm_postponed_event_t *tmp;
+
+  ASSERT_VALID_EVENT( fsm, event_type );
+
+  atomic_set(&fsm->postponed_events.cancel, 1);
+
+  ret = cancel_delayed_work(&fsm->postponed_events.work);
+  if (!ret) {
+    flush_delayed_work(&fsm->postponed_events.work);
+  }
+
+  spin_lock(&fsm->postponed_events.lock);
+
+  list_for_each_entry_safe(event, tmp, &fsm->postponed_events.events, list) {
+    if (event->event == event_type) {
+      list_del(&event->list);
+      kfree(event);
+    }
+  }
+
+  if (!list_empty(&fsm->postponed_events.events)) {
+    struct fsm_postponed_event_t *head;
+
+    head = list_first_entry(&fsm->postponed_events.events,
+                            struct fsm_postponed_event_t, list);
+
+    schedule_delayed_work(&fsm->postponed_events.work, head->time - jiffies);
+  }
+
+  spin_unlock(&fsm->postponed_events.lock);
+
+  atomic_set(&fsm->postponed_events.cancel, 0);
 }
 
 
