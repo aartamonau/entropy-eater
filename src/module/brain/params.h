@@ -1,5 +1,5 @@
 /**
- * @file   eater_params.h
+ * @file   params.h
  * @author Aliaksiej Artamonaŭ <aliaksiej.artamonau@gmail.com>
  * @date   Tue Sep 21 21:06:58 2010
  *
@@ -10,8 +10,8 @@
  */
 
 
-#ifndef _EATER_PARAMS_H_
-#define _EATER_PARAMS_H_
+#ifndef _PARAMS_H_
+#define _PARAMS_H_
 
 
 #include "utils/assert.h"
@@ -40,16 +40,10 @@ static inline int __deviate_value(int value, unsigned int deviation)
 #define EATER_TIME_DEVIATION 10
 
 
-/// Time before eater will get hungry again (in seconds).
-#define __EATER_HUNGER_TIMEOUT (30 * 60)
-#define EATER_HUNGER_TIMEOUT \
-  __deviate_value(__EATER_HUNGER_TIMEOUT, EATER_TIME_DEVIATION)
-
-
-/// Time before eater will get starving (in seconds).
-#define __EATER_STARVING_TIMEOUT (15 * 60)
-#define EATER_STARVING_TIMEOUT \
-  __deviate_value(__EATER_STARVING_TIMEOUT, EATER_TIME_DEVIATION)
+/// Periods between eaters' meals.
+#define __EATER_FEEDING_TIME_PERIOD (30 * 60)
+#define EATER_FEEDING_TIME_PERIOD \
+  __deviate_value(__EATER_FEEDING_TIME_PERIOD, EATER_TIME_DEVIATION)
 
 
 /// Bounds deviation of entropy quantity that should be eaten when eater's
@@ -71,5 +65,4 @@ static inline int __deviate_value(int value, unsigned int deviation)
 #define EATER_ENTROPY_BALANCE_CRITICALLY_HIGH 10000
 
 
-
-#endif /* _EATER_PARAMS_H_ */
+#endif /* _PARAMS_H_ */

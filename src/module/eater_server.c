@@ -1,7 +1,7 @@
-#include "utils/trace.h"
-
 #include "eater_server.h"
-#include "eater_fsm.h"
+
+#include "utils/trace.h"
+#include "brain/feeding_fsm.h"
 
 
 /// Attributes' policies.
@@ -107,8 +107,6 @@ eater_feed(struct sk_buff *skb, struct genl_info *info)
   u8    *data;
   size_t data_length;
 
-  struct eater_fsm_event_t event;
-
   if (!info->attrs[EATER_ATTR_FOOD]) {
     TRACE_ERR("EATER_ATTR_FOOD attribute not found");
     return -EINVAL;
@@ -117,9 +115,7 @@ eater_feed(struct sk_buff *skb, struct genl_info *info)
   data        = nla_data(info->attrs[EATER_ATTR_FOOD]);
   data_length = nla_len(info->attrs[EATER_ATTR_FOOD]);
 
-  event.type = EATER_FSM_EVENT_TYPE_FEED;
-  event.data.feed_data.food  = data;
-  event.data.feed_data.count = data_length;
+  feeding_fsm_feed(data, data_length);
 
-  return eater_fsm_emit(&event);
+  return 0;
 }

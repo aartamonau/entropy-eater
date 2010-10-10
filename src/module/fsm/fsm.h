@@ -13,14 +13,17 @@
 
 
 #include <linux/types.h>
+#include <linux/workqueue.h>
+
+#include "status/status.h"
 
 
 /// Event handler taking event-specific data.
-typedef int (*fsm_event_handler_t)(void *, void *);
+typedef int (*fsm_event_handler_t)(int, void *, void *);
 
 
 /// Event handler that does not take event-specific data.
-typedef int (*fsm_event_handler_no_data_t)(void *);
+typedef int (*fsm_event_handler_no_data_t)(int, void *);
 
 
 /// Different types of event handlers.
@@ -39,12 +42,12 @@ struct fsm_event_handler_t {
   union {
     /// Handler without data.
     struct {
-      int (*fn)(void *);          /**< Function to be called. */
+      int (*fn)(int, void *);          /**< Function to be called. */
     } no_data;
 
     /// Handler with data.
     struct {
-      int (*fn)(void *, void *);  /**< Function to be called. */
+      int (*fn)(int, void *, void *);  /**< Function to be called. */
     } with_data;
   } h;
 };
@@ -54,13 +57,14 @@ struct fsm_event_handler_t {
 #define _EVENT_HANDLER(_handler)                            \
   {                                                         \
     .with_data = {                                          \
-      _handler                                              \
+      (fsm_event_handler_t) _handler                        \
     }                                                       \
   }                                                         \
 
 
 /// Not supposed to be used directly.
-#define _EVENT_HANDLER_NO_DATA(_handler) { .no_data = { _handler } }
+#define _EVENT_HANDLER_NO_DATA(_handler) \
+  { .no_data = { (fsm_event_handler_no_data_t) _handler } }
 
 
 /**
@@ -69,7 +73,7 @@ struct fsm_event_handler_t {
  * @param _type        type of event that triggers this handler
  * @param _handler     function to be called when event arrives
  */
-#define EVENT_HANDLER(_type, _handler)                         \
+#define EVENT(_type, _handler)                                 \
   [_type] = { .type = FSM_EVENT_HANDLER_WITH_DATA,             \
               .h    = _EVENT_HANDLER(_handler) }
 
@@ -80,13 +84,17 @@ struct fsm_event_handler_t {
  * @param _type    type of event that triggers this handler
  * @param _handler function to be called when event arrives
  */
-#define EVENT_HANDLER_NO_DATA(_type, _handler)            \
+#define EVENT_NO_DATA(_type, _handler)                    \
   [_type] = { .type = FSM_EVENT_HANDLER_NO_DATA,          \
               .h    = _EVENT_HANDLER_NO_DATA(_handler) }
 
 
-/// Abstract type representing finite state machine.
-struct fsm_t;
+/// Event that can be postponed.
+struct postponed_event_t {
+    int                 event; /**< Event type. */
+    struct delayed_work work;  /**< Emits the event when time
+                                * comes. */
+};
 
 
 /// Function transforming FSM state to its character presentation.
@@ -95,6 +103,28 @@ typedef const char *(*fsm_state_show_fn_t)(int state);
 
 /// Function transforming FSM event to its character presentation.
 typedef const char *(*fsm_event_show_fn_t)(int event);
+
+
+/// FSM type.
+struct fsm_t {
+  /* read only */
+  const char *name;             /**< FSM name */
+  int   state_count;      /**< Number of states. */
+  int   event_count;      /**< Number of events. */
+
+  fsm_state_show_fn_t show_state; /**< Showing function for states. */
+  fsm_event_show_fn_t show_event; /**< Showing function for events. */
+
+  void *data;                   /**< Arbitrary data supplied by user. */
+
+  const struct fsm_event_handler_t *handlers; /**< Event handlers. */
+
+  /* read/write */
+  int                  state;           /**< Current state. */
+  struct status_attr_t state_attr;      /**< State sysfs attribute. */
+
+  struct postponed_event_t postponed_event; /**< Postponed event (if any). */
+};
 
 
 /**

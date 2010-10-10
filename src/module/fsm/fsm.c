@@ -10,36 +10,6 @@
 #include "fsm/fsm.h"
 
 
-/// Event that can be postponed.
-struct postponed_event_t {
-    int                 event; /**< Event type. */
-    struct delayed_work work;  /**< Emits the event when time
-                                * comes. */
-};
-
-
-/// FSM type.
-struct fsm_t {
-  /* read only */
-  const char *name;             /**< FSM name */
-  int   state_count;      /**< Number of states. */
-  int   event_count;      /**< Number of events. */
-
-  fsm_state_show_fn_t show_state; /**< Showing function for states. */
-  fsm_event_show_fn_t show_event; /**< Showing function for events. */
-
-  void *data;                   /**< Arbitrary data supplied by user. */
-
-  const struct fsm_event_handler_t *handlers; /**< Event handlers. */
-
-  /* read/write */
-  int                  state;           /**< Current state. */
-  struct status_attr_t state_attr;      /**< State sysfs attribute. */
-
-  struct postponed_event_t postponed_event; /**< Postponed event (if any). */
-};
-
-
 /**
  * Checks whether supplied event is valid. Otherwise BUG()s.
  *
@@ -135,12 +105,13 @@ fsm_init(struct fsm_t *fsm,
     TRACE_ERR("Not enough memory");
     return -ENOMEM;
   }
+  snprintf(state_attr_name, state_attr_name_length, "%s_state", name);
 
   status_attr_init(&fsm->state_attr, state_attr_name,
                    (status_attr_show_t) fsm_state_attr_show, fsm);
 
   ret = status_create_file(&fsm->state_attr);
-  if (ret != ret) {
+  if (ret != 0) {
     goto error;
   }
 
@@ -164,7 +135,7 @@ fsm_cleanup(struct fsm_t *fsm)
 static ssize_t
 fsm_state_attr_show(const char *name, const struct fsm_t *fsm, char *buffer)
 {
-  return snprintf(buffer, PAGE_SIZE, fsm->show_state(fsm->state));
+  return snprintf(buffer, PAGE_SIZE, "%s\n", fsm->show_state(fsm->state));
 }
 
 
@@ -175,7 +146,7 @@ fsm_emit(struct fsm_t *fsm, int event, void *data)
 
   ASSERT_VALID_EVENT( fsm, event );
 
-  TRACE_DEBUG("FSM %s:\n\tstate: %s\n\tincoming event: %s",
+  TRACE_DEBUG("FSM %s: tstate: %s, incoming event: %s",
               fsm->name,
               fsm->show_state(fsm->state),
               fsm->show_event(event));
@@ -191,7 +162,7 @@ fsm_emit(struct fsm_t *fsm, int event, void *data)
 
   ASSERT_VALID_STATE( fsm, fsm->state );
 
-  TRACE_DEBUG("FSM %s:\n\tnew state: %s",
+  TRACE_DEBUG("FSM %s: new state: %s",
               fsm->name, fsm->show_state(fsm->state));
 
   return 0;
@@ -218,9 +189,9 @@ fsm_event_dispatch(struct fsm_t *fsm, int event, void *data)
   handler = &fsm->handlers[event];
 
   if (handler->type == FSM_EVENT_HANDLER_NO_DATA) {
-    return handler->h.no_data.fn(fsm->data);
+    return handler->h.no_data.fn(fsm->state, fsm->data);
   } else {                      /* FSM_EVENT_HANDLER_WITH_DATA */
-    return handler->h.with_data.fn(fsm->data, data);
+    return handler->h.with_data.fn(fsm->state, fsm->data, data);
   }
 }
 

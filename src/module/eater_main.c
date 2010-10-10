@@ -3,9 +3,10 @@
 
 #include "utils/trace.h"
 #include "status/status.h"
+#include "brain/brain.h"
+#include "brain/living_fsm.h"
 
 #include "eater_server.h"
-#include "eater_fsm.h"
 
 
 int __init eater_init(void)
@@ -23,15 +24,10 @@ int __init eater_init(void)
     goto error_server_unregister;
   }
 
-  ret = eater_fsm_init();
+  ret = brain_init();
   if (ret != 0) {
-    TRACE_ERR("Cannot initialize FSM");
-    goto error_status_remove;
-  }
-
-  ret = eater_fsm_emit_simple(EATER_FSM_EVENT_TYPE_INIT);
-  if (ret != 0) {
-    TRACE_ERR("Cannot initialize entropy eater");
+    TRACE_ERR("Cannot initialize entropy eater's brain. "
+              "It's a pain to live without a brain.");
     goto error_status_remove;
   }
 
@@ -60,11 +56,8 @@ void __exit eater_exit(void)
     TRACE_ERR("Cannot unregister entropy eater server");
   }
 
-  ret = eater_fsm_emit_simple(EATER_FSM_EVENT_TYPE_DIE_NOBLY);
-  if (ret != 0) {
-    TRACE_ERR("Sorrowfully, entropy eater has been unable to say his last "
-              "noble word to you");
-  }
+  living_fsm_die_nobly();
+  brain_cleanup();
 
   /* removing all the exported files to make life easier for other modules */
   status_remove_all_files();
