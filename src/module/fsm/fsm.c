@@ -65,7 +65,16 @@ fsm_event_dispatch(struct fsm_t *fsm, int event, void *data);
  * @param work corresponding work
  */
 static void
-fsm_postponed_event_worker_fn(struct work_struct *work);
+fsm_postponed_events_work_fn(struct work_struct *work);
+
+
+/**
+ * Initializes postponed events structure.
+ *
+ * @param postponed_events structure to initialize
+ */
+static void
+fsm_postponed_events_init(struct fsm_postponed_events_t *postponed_events);
 
 
 int
@@ -95,8 +104,7 @@ fsm_init(struct fsm_t *fsm,
   fsm->handlers    = handlers;
 
   fsm->state = 0;
-  INIT_DELAYED_WORK(&fsm->postponed_event.work, fsm_postponed_event_worker_fn);
-
+  fsm_postponed_events_init(&fsm->postponed_events);
 
   state_attr_name_length = strlen(name) + strlen("_state") + 1;
 
@@ -126,7 +134,7 @@ error:
 void
 fsm_cleanup(struct fsm_t *fsm)
 {
-  fsm_cancel_postponed_event(fsm);
+  fsm_cancel_postponed_events(fsm);
   status_remove_file(&fsm->state_attr);
   kfree(fsm->state_attr.attr.name);
 }
@@ -196,54 +204,134 @@ fsm_event_dispatch(struct fsm_t *fsm, int event, void *data)
 }
 
 
-void
+int
 fsm_postpone_event(struct fsm_t *fsm, int event, unsigned long delay)
 {
+  bool schedule;
+  struct fsm_postponed_event_t *postponed_event;
+
   ASSERT_VALID_EVENT( fsm, event );
   ASSERT_NO_DATA_EVENT( fsm, event );
+
+  postponed_event = kmalloc(sizeof(*postponed_event), GFP_KERNEL);
+  if (postponed_event == NULL) {
+    TRACE_ERR("Unable to allocate memory for a postponed event");
+    return -ENOMEM;
+  }
+
+  postponed_event->event = event;
+  postponed_event->time  = jiffies + delay;
 
   TRACE_DEBUG("FSM %s: postponing event %s to the future (%us)",
               fsm->name, fsm->show_event(event),
               jiffies_to_msecs(delay) / 1000);
 
-  fsm->postponed_event.event = event;
-  schedule_delayed_work(&fsm->postponed_event.work, delay);
+  spin_lock(&fsm->postponed_events.lock);
+
+  schedule = list_empty(&fsm->postponed_events.events);
+  list_add_tail(&postponed_event->list, &fsm->postponed_events.events);
+
+  if (schedule) {
+    schedule_delayed_work(&fsm->postponed_events.work, delay);
+  }
+
+  spin_unlock(&fsm->postponed_events.lock);
+
+  return 0;
 }
 
 
 void
-fsm_cancel_postponed_event(struct fsm_t *fsm)
+fsm_cancel_postponed_events(struct fsm_t *fsm)
 {
   int ret;
+  struct fsm_postponed_event_t *event;
+  struct fsm_postponed_event_t *tmp;
 
-  ret = cancel_delayed_work(&fsm->postponed_event.work);
+
+  atomic_set(&fsm->postponed_events.cancel, 1);
+  ret = cancel_delayed_work(&fsm->postponed_events.work);
   if (!ret) {
-    /* waiting till work terminates */
-    flush_delayed_work(&fsm->postponed_event.work);
+    flush_delayed_work(&fsm->postponed_events.work);
   }
+
+  spin_lock(&fsm->postponed_events.lock);
+
+  list_for_each_entry_safe(event, tmp, &fsm->postponed_events.events, list) {
+    list_del(&event->list);
+    kfree(event);
+  }
+
+  spin_unlock(&fsm->postponed_events.lock);
 }
 
 
 static void
-fsm_postponed_event_worker_fn(struct work_struct *work)
+fsm_postponed_events_work_fn(struct work_struct *work)
 {
   int ret;
-  struct postponed_event_t *postponed_event;
-  struct fsm_t             *fsm;
-  int                       event;
 
-  postponed_event = container_of(to_delayed_work(work),
-                                 struct postponed_event_t, work);
+  struct fsm_t                  *fsm;
+  struct fsm_postponed_events_t *postponed_events;
+  struct fsm_postponed_event_t  *postponed_event;
+  struct fsm_postponed_event_t  *next_event = NULL;
 
-  event = postponed_event->event;
-  fsm = container_of(postponed_event, struct fsm_t, postponed_event);
+  postponed_events = container_of(to_delayed_work(work),
+                                  struct fsm_postponed_events_t, work);
+
+  spin_lock(&postponed_events->lock);
+
+  ASSERT( !list_empty(&postponed_events->events) );
+
+  postponed_event = list_first_entry(&postponed_events->events,
+                                     struct fsm_postponed_event_t, list);
+  list_del(&postponed_event->list);
+
+  if (!list_empty(&postponed_events->events)) {
+    next_event = list_first_entry(&postponed_events->events,
+                                  struct fsm_postponed_event_t, list);
+  }
+
+  spin_unlock(&postponed_events->lock);
+
+  fsm = container_of(postponed_events, struct fsm_t, postponed_events);
 
   TRACE_DEBUG("FSM %s: emitting postponed event %s",
-              fsm->name, fsm->show_event(event));
+              fsm->name, fsm->show_event(postponed_event->event));
 
-  ret = fsm_emit_simple(fsm, event);
+  ret = fsm_emit_simple(fsm, postponed_event->event);
   if (ret != 0) {
     TRACE_ERR("FSM %s: postponed event %s handled with error %d",
-              fsm->name, fsm->show_event(event), ret);
+              fsm->name, fsm->show_event(postponed_event->event), ret);
   }
+
+  if ((next_event != NULL) && !atomic_read(&postponed_events->cancel)) {
+    unsigned long now;
+    unsigned long delay;
+
+    now = jiffies;
+
+    if (next_event->time < now) {
+      delay = 0;
+    } else {
+      delay = next_event->time - now;
+    }
+
+    TRACE_DEBUG("Rescheduling postponed events work to %us in future",
+                jiffies_to_msecs(delay) / 1000);
+
+    schedule_delayed_work(&postponed_events->work, delay);
+  }
+
+  kfree(postponed_event);
+}
+
+
+static void
+fsm_postponed_events_init(struct fsm_postponed_events_t *postponed_events)
+{
+  spin_lock_init(&postponed_events->lock);
+  INIT_DELAYED_WORK(&postponed_events->work, fsm_postponed_events_work_fn);
+  INIT_LIST_HEAD(&postponed_events->events);
+  atomic_set(&postponed_events->cancel, 0);
 }

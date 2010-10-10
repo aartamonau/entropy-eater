@@ -201,9 +201,17 @@ static int
 feeding_fsm_init_handler(enum feeding_state_t state,
                          struct feeding_fsm_t *feeding_fsm)
 {
+  int ret;
+
   feeding_fsm->entropy_balance = 0;
-  fsm_postpone_event(&feeding_fsm->fsm,
-                     FEEDING_EVENT_FEEDING_TIME, EATER_FEEDING_TIME_PERIOD);
+
+  ret = fsm_postpone_event(&feeding_fsm->fsm,
+                           FEEDING_EVENT_FEEDING_TIME,
+                           EATER_FEEDING_TIME_PERIOD);
+  if (ret != 0) {
+    return ret;
+  }
+
   return FEEDING_STATE_NORMAL;
 }
 
@@ -212,6 +220,7 @@ static int
 feeding_fsm_feeding_time_handler(enum feeding_state_t state,
                                  struct feeding_fsm_t *feeding_fsm)
 {
+  int ret;
   int old_balance = feeding_fsm->entropy_balance;
 
   brain_msg("it's a good time to get some food");
@@ -222,8 +231,12 @@ feeding_fsm_feeding_time_handler(enum feeding_state_t state,
              old_balance, feeding_fsm->entropy_balance);
 
   /* rescheduling hungriness feeling */
-  fsm_postpone_event(&feeding_fsm->fsm,
-                     FEEDING_EVENT_FEEDING_TIME, EATER_FEEDING_TIME_PERIOD);
+  ret = fsm_postpone_event(&feeding_fsm->fsm,
+                           FEEDING_EVENT_FEEDING_TIME,
+                           EATER_FEEDING_TIME_PERIOD);
+  if (ret != 0) {
+    return ret;
+  }
 
   if (feeding_fsm->entropy_balance <= EATER_ENTROPY_BALANCE_CRITICALLY_LOW) {
     TRACE_INFO("Entropy balance has fallen to the critically low level: %d",

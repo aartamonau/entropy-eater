@@ -14,6 +14,7 @@
 
 #include <linux/types.h>
 #include <linux/workqueue.h>
+#include <linux/list.h>
 
 #include "status/status.h"
 
@@ -89,11 +90,23 @@ struct fsm_event_handler_t {
               .h    = _EVENT_HANDLER_NO_DATA(_handler) }
 
 
-/// Event that can be postponed.
-struct postponed_event_t {
-    int                 event; /**< Event type. */
-    struct delayed_work work;  /**< Emits the event when time
-                                * comes. */
+/// Handles postponed events.
+struct fsm_postponed_events_t {
+  spinlock_t          lock;
+
+  atomic_t            cancel;    /**< Flags when no rescheduling should be
+                                  * performed. */
+  struct delayed_work work;      /**< Work doing the main job. */
+  struct list_head    events;    /**< Queue of the postponed events. */
+};
+
+
+/// Single postponed event.
+struct fsm_postponed_event_t {
+  int           event;          /**< Event type. */
+  unsigned long time;           /**< Time when it should be emitted. */
+
+  struct list_head list;        /**< Forms a list of events. */
 };
 
 
@@ -108,7 +121,7 @@ typedef const char *(*fsm_event_show_fn_t)(int event);
 /// FSM type.
 struct fsm_t {
   /* read only */
-  const char *name;             /**< FSM name */
+  const char *name;       /**< FSM name */
   int   state_count;      /**< Number of states. */
   int   event_count;      /**< Number of events. */
 
@@ -123,7 +136,7 @@ struct fsm_t {
   int                  state;           /**< Current state. */
   struct status_attr_t state_attr;      /**< State sysfs attribute. */
 
-  struct postponed_event_t postponed_event; /**< Postponed event (if any). */
+  struct fsm_postponed_events_t postponed_events; /**< Postponed events. */
 };
 
 
@@ -198,19 +211,21 @@ fsm_emit_simple(struct fsm_t *fsm, int event);
  * @param fsm    FSM
  * @param event  event type
  * @param delay  delay in jiffies
+ *
+ * @return execution status
  */
-void
+int
 fsm_postpone_event(struct fsm_t *fsm,
                    int event_type, unsigned long delay);
 
 
 /**
- * Cancels postponed event.
+ * Cancels postponed events.
  *
  * @param fsm FSM
  */
 void
-fsm_cancel_postponed_event(struct fsm_t *fsm);
+fsm_cancel_postponed_events(struct fsm_t *fsm);
 
 
 #endif /* _FSM_H_ */

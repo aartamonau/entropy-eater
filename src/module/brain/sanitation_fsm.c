@@ -53,6 +53,11 @@ enum sanitation_state_t {
 #define SANITATION_STATES_COUNT __SANITATION_STATE_LAST
 
 
+/// Ensures that state is valid.
+#define ASSERT_VALID_STATE(state) \
+  ASSERT_IN_RANGE(state, 0, SANITATION_STATES_COUNT - 1);
+
+
 static inline const char *
 sanitation_state_to_str(enum sanitation_state_t state)
 {
@@ -67,11 +72,6 @@ sanitation_state_to_str(enum sanitation_state_t state)
 
   return strs[state];
 }
-
-
-/// Ensures that state is valid.
-#define ASSERT_VALID_STATE(state) \
-  ASSERT_IN_RANGE(state, 0, SANITATION_STATES_COUNT - 1);
 
 
 /// Sanitation FSM type.
@@ -134,7 +134,7 @@ sanitation_fsm_init(void)
 }
 
 
-int
+void
 sanitation_fsm_cleanup(void)
 {
 }
