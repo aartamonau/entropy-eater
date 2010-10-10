@@ -28,7 +28,11 @@ usage(void)
           "\thello\n"
           "\t\tsend hello message to entropy eater;\n"
           "\tfeed --food <data>\n"
-          "\t\tfeed entropy eater with data;\n",
+          "\t\tfeed entropy eater with data;\n"
+          "\tsweep\n"
+          "\t\tsweep entropy eater's room;\n"
+          "\tdisinfect\n"
+          "\t\tdisinfect entropy eater's room;\n",
           program, program);
 }
 
@@ -200,6 +204,34 @@ cmd_feed_opts_validator(const struct command_t *command)
 }
 
 
+static int
+cmd_sweep_handler(struct command_t *command)
+{
+  int ret;
+
+  ret = eater_cmd_sweep();
+  if (ret != EATER_OK) {
+    error("cannot send 'SWEEP' command to eater: %m", errno);
+    return -1;
+  }
+  return 0;
+}
+
+
+static int
+cmd_disinfect_handler(struct command_t *command)
+{
+  int ret;
+
+  ret = eater_cmd_disinfect();
+  if (ret != EATER_OK) {
+    error("cannot send 'DISINFECT' command to eater: %m", errno);
+    return -1;
+  }
+  return 0;
+}
+
+
 struct command_t commands[] = {
   {
     .name                = "hello",
@@ -229,7 +261,29 @@ struct command_t commands[] = {
       { "food", required_argument, NULL, 'f' },
       { 0 },
     }
-  }
+  },
+  {
+    .name                = "sweep",
+    .requires_connection = true,
+    .handler             = cmd_sweep_handler,
+    .opts_handler        = NULL,
+    .opts_validator      = NULL,
+
+    .options = {
+      { 0 },
+    },
+  },
+  {
+    .name                = "disinfect",
+    .requires_connection = true,
+    .handler             = cmd_disinfect_handler,
+    .opts_handler        = NULL,
+    .opts_validator      = NULL,
+
+    .options = {
+      { 0 },
+    },
+  },
 };
 
 
