@@ -37,11 +37,23 @@ static struct connection_t connection = { 0, NULL };
  *
  * @param cmd command to be sent in the message
  *
- * @return mesage
+ * @return message
  * @retval NULL error occurred
  */
 static struct nl_msg *
 eater_prepare_message(enum eater_cmd_t cmd);
+
+
+/**
+ * Sends and handles the response of the command that does not require any
+ * arguments.
+ *
+ * @param cmd command
+ *
+ * @return execution status
+ */
+static int
+eater_send_noarg_cmd(enum eater_cmd_t cmd);
 
 
 int
@@ -114,6 +126,40 @@ error:
   nlmsg_free(msg);
 
   return NULL;
+}
+
+
+static int
+eater_send_noarg_cmd(enum eater_cmd_t cmd)
+{
+  int ret;
+  struct nl_msg *msg;
+
+  msg = eater_prepare_message(cmd);
+  if (msg == NULL) {
+    return EATER_ERROR;
+  }
+
+  ret = nl_send_auto_complete(connection.sock, msg);
+  if (ret < 0) {
+    errno = -ret;
+    goto error;
+  }
+
+  ret = nl_recvmsgs_default(connection.sock);
+  if (ret < 0) {
+    errno = -ret;
+    goto error;
+  }
+
+  ret = EATER_OK;
+  goto out;
+
+error:
+  ret = EATER_ERROR;
+out:
+  nlmsg_free(msg);
+  return ret;
 }
 
 
