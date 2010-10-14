@@ -308,5 +308,11 @@ feeding_fsm_entropy_balance_attr_show(const char *name,
                                       const struct feeding_fsm_t *feeding_fsm,
                                       char *buffer)
 {
-  return snprintf(buffer, PAGE_SIZE, "%d\n", feeding_fsm->entropy_balance);
+  int balance;
+
+  fsm_read_lock(&feeding_fsm->fsm);
+  balance = feeding_fsm->entropy_balance;
+  fsm_read_unlock(&feeding_fsm->fsm);
+
+  return snprintf(buffer, PAGE_SIZE, "%d\n", balance);
 }

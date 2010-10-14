@@ -46,7 +46,7 @@ fsm_state_attr_show(const char *name, const struct fsm_t *fsm, char *buffer);
 
 
 /**
- * Dispatches event to its handler.
+ * Dispatches event to its handler. Lock should be acquired by the caller.
  *
  * @param fsm   FSM
  * @param event event to dispatch
@@ -56,7 +56,7 @@ fsm_state_attr_show(const char *name, const struct fsm_t *fsm, char *buffer);
  * @retval  <0 error code
  */
 static int
-fsm_event_dispatch(struct fsm_t *fsm, int event, void *data);
+__fsm_event_dispatch(struct fsm_t *fsm, int event, void *data);
 
 
 /**
@@ -94,6 +94,8 @@ fsm_init(struct fsm_t *fsm,
 
   ASSERT( state_count >= 1 );
   ASSERT( event_count >= 1 );
+
+  rwlock_init(&fsm->lock);
 
   fsm->name        = name;
   fsm->state_count = state_count;
@@ -143,12 +145,18 @@ fsm_cleanup(struct fsm_t *fsm)
 static ssize_t
 fsm_state_attr_show(const char *name, const struct fsm_t *fsm, char *buffer)
 {
-  return snprintf(buffer, PAGE_SIZE, "%s\n", fsm->show_state(fsm->state));
+  int state;
+
+  read_lock(&fsm->lock);
+  state = fsm->state;
+  read_unlock(&fsm->lock);
+
+  return snprintf(buffer, PAGE_SIZE, "%s\n", fsm->show_state(state));
 }
 
 
 int
-fsm_emit(struct fsm_t *fsm, int event, void *data)
+__fsm_emit(struct fsm_t *fsm, int event, void *data)
 {
   int ret;
 
@@ -159,7 +167,8 @@ fsm_emit(struct fsm_t *fsm, int event, void *data)
               fsm->show_state(fsm->state),
               fsm->show_event(event));
 
-  ret = fsm_event_dispatch(fsm, event, data);
+
+  ret = __fsm_event_dispatch(fsm, event, data);
   if (ret < 0) {
     TRACE_DEBUG("FSM %s: event handler reports an error: %d",
                 fsm->name, ret);
@@ -178,17 +187,36 @@ fsm_emit(struct fsm_t *fsm, int event, void *data)
 
 
 int
+fsm_emit(struct fsm_t *fsm, int event, void *data)
+{
+  int ret;
+
+  write_lock(&fsm->lock);
+  ret = __fsm_emit(fsm, event, data);
+  write_unlock(&fsm->lock);
+
+  return ret;
+}
+
+
+int
 fsm_emit_simple(struct fsm_t *fsm, int event)
 {
+  int ret;
+
   ASSERT_VALID_EVENT( fsm, event );
   ASSERT_NO_DATA_EVENT( fsm, event );
 
-  return fsm_emit(fsm, event, NULL);
+  write_lock(&fsm->lock);
+  ret = __fsm_emit(fsm, event, NULL);
+  write_unlock(&fsm->lock);
+
+  return ret;
 }
 
 
 static int
-fsm_event_dispatch(struct fsm_t *fsm, int event, void *data)
+__fsm_event_dispatch(struct fsm_t *fsm, int event, void *data)
 {
   const struct fsm_event_handler_t *handler;
 
@@ -226,6 +254,7 @@ fsm_postpone_event(struct fsm_t *fsm, int event, unsigned long delay)
               fsm->name, fsm->show_event(event),
               jiffies_to_msecs(delay) / 1000);
 
+
   spin_lock(&fsm->postponed_events.lock);
 
   schedule = list_empty(&fsm->postponed_events.events);
@@ -236,6 +265,7 @@ fsm_postpone_event(struct fsm_t *fsm, int event, unsigned long delay)
   }
 
   spin_unlock(&fsm->postponed_events.lock);
+
 
   return 0;
 }

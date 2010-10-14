@@ -92,7 +92,7 @@ struct fsm_event_handler_t {
 
 /// Handles postponed events.
 struct fsm_postponed_events_t {
-  spinlock_t          lock;
+  spinlock_t          lock;      /**< Mutual exclusion lock. */
 
   atomic_t            cancel;    /**< Flags when no rescheduling should be
                                   * performed. */
@@ -120,6 +120,8 @@ typedef const char *(*fsm_event_show_fn_t)(int event);
 
 /// FSM type.
 struct fsm_t {
+  rwlock_t lock;                /**< Mutual exclusion lock. */
+
   /* read only */
   const char *name;       /**< FSM name */
   int   state_count;      /**< Number of states. */
@@ -236,6 +238,37 @@ fsm_cancel_postponed_events(struct fsm_t *fsm);
  */
 void
 fsm_cancel_postponed_event_by_type(struct fsm_t *fsm, int event);
+
+
+/* It's guaranteed that event handlers are executed with exclusive access to
+ * the fsm. And it's encouraged to structure the code in the way this is also
+ * ensures exclusive access to the containing structure. In this case the
+ * following operations can be used to lock fsm (and containing structure)
+ * for read-only accesses.  */
+
+
+/**
+ * Locks FSM for read-only accesses.
+ *
+ * @param fsm FSM to lock
+ */
+static inline void
+fsm_read_lock(const struct fsm_t *fsm)
+{
+  read_lock(&fsm->lock);
+}
+
+
+/**
+ * Unlocks FSM previously locked by fsm_read_lock() function.
+ *
+ * @param fsm FSM to unlock
+ */
+static inline void
+fsm_read_unlock(const struct fsm_t *fsm)
+{
+  read_unlock(&fsm->lock);
+}
 
 
 #endif /* _FSM_H_ */
