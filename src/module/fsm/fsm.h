@@ -237,7 +237,7 @@ fsm_cancel_postponed_events(struct fsm_t *fsm);
  * @param event event
  */
 void
-fsm_cancel_postponed_event_by_type(struct fsm_t *fsm, int event);
+fsm_cancel_postponed_events_by_type(struct fsm_t *fsm, int event);
 
 
 /* It's guaranteed that event handlers are executed with exclusive access to

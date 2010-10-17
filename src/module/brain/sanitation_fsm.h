@@ -11,12 +11,50 @@
 #define _BRAIN__SANITATION_FSM_H_
 
 
+/**
+ * Initializes sanitation FSM.
+ *
+ *
+ * @return execution status
+ */
 int
 sanitation_fsm_init(void);
 
 
+/**
+ * Cleanups the resources held by sanitation FSM.
+ *
+ */
 void
 sanitation_fsm_cleanup(void);
+
+
+/**
+ * Says to the sanitation FSM that eater has just eaten.
+ *
+ */
+void
+sanitation_fsm_just_eaten(void);
+
+
+/**
+ * Sweep the "room" entropy eater's living in.
+ *
+ *
+ * @return execution status
+ */
+int
+sanitation_fsm_sweep(void);
+
+
+/**
+ * Disinfect the "room".
+ *
+ *
+ * @return execution status
+ */
+int
+sanitation_fsm_disinfect(void);
 
 
 #endif /* _BRAIN__SANITATION_FSM_H_ */

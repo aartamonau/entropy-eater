@@ -7,6 +7,7 @@
 #include "brain/params.h"
 #include "brain/feeding_fsm.h"
 #include "brain/living_fsm.h"
+#include "brain/sanitation_fsm.h"
 
 
 /// Feeding FSM events.
@@ -270,6 +271,8 @@ feeding_fsm_feed_handler(enum feeding_state_t state,
                feeding_fsm->entropy_balance);
     living_fsm_die();
   }
+
+  sanitation_fsm_just_eaten();
 
   return classify_entropy_balance(feeding_fsm->entropy_balance);
 }

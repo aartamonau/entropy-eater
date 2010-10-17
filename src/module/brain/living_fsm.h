@@ -48,4 +48,22 @@ void __noreturn
 living_fsm_die(void);
 
 
+/**
+ * Makes entropy eater ill.
+ *
+ */
+void
+living_fsm_fall_ill(void);
+
+
+/**
+ * Cures entropy eater's illness.
+ *
+ *
+ * @return execution status
+ */
+int
+living_fsm_cure_illness(void);
+
+
 #endif /* _BRAIN__LIVING_FSM_H_ */

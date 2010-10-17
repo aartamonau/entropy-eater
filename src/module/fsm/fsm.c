@@ -243,7 +243,8 @@ fsm_postpone_event(struct fsm_t *fsm, int event, unsigned long delay)
 
   postponed_event = kmalloc(sizeof(*postponed_event), GFP_KERNEL);
   if (postponed_event == NULL) {
-    TRACE_ERR("Unable to allocate memory for a postponed event");
+    TRACE_ERR("FSM %s: unable to allocate memory for a postponed event",
+              fsm->name);
     return -ENOMEM;
   }
 
@@ -278,6 +279,9 @@ fsm_cancel_postponed_events(struct fsm_t *fsm)
   struct fsm_postponed_event_t *event;
   struct fsm_postponed_event_t *tmp;
 
+  size_t events_count = 0;
+
+  TRACE_DEBUG("FSM %s: canceling all the postponed events", fsm->name);
 
   atomic_set(&fsm->postponed_events.cancel, 1);
   ret = cancel_delayed_work(&fsm->postponed_events.work);
@@ -290,22 +294,30 @@ fsm_cancel_postponed_events(struct fsm_t *fsm)
   list_for_each_entry_safe(event, tmp, &fsm->postponed_events.events, list) {
     list_del(&event->list);
     kfree(event);
+    ++events_count;
   }
 
   spin_unlock(&fsm->postponed_events.lock);
 
   atomic_set(&fsm->postponed_events.cancel, 0);
+
+  TRACE_DEBUG("FSM %s: %zu event(s) canceled", fsm->name, events_count);
 }
 
 
 void
-fsm_cancel_postponed_event_by_type(struct fsm_t *fsm, int event_type)
+fsm_cancel_postponed_events_by_type(struct fsm_t *fsm, int event_type)
 {
   int ret;
   struct fsm_postponed_event_t *event;
   struct fsm_postponed_event_t *tmp;
 
+  size_t events_count = 0;
+
   ASSERT_VALID_EVENT( fsm, event_type );
+
+  TRACE_DEBUG("FSM %s: canceling all the events of type '%s'",
+              fsm->name, fsm->show_event(event_type));
 
   atomic_set(&fsm->postponed_events.cancel, 1);
 
@@ -320,6 +332,8 @@ fsm_cancel_postponed_event_by_type(struct fsm_t *fsm, int event_type)
     if (event->event == event_type) {
       list_del(&event->list);
       kfree(event);
+
+      ++events_count;
     }
   }
 
@@ -335,6 +349,9 @@ fsm_cancel_postponed_event_by_type(struct fsm_t *fsm, int event_type)
   spin_unlock(&fsm->postponed_events.lock);
 
   atomic_set(&fsm->postponed_events.cancel, 0);
+
+  TRACE_DEBUG("FSM %s: %zu event(s) of type '%s' canceled",
+              fsm->name, events_count, fsm->show_event(event_type));
 }
 
 
