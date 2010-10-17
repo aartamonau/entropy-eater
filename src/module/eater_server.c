@@ -1,15 +1,18 @@
 #include "eater_server.h"
 
 #include "utils/trace.h"
+#include "utils/rps.h"
 #include "brain/sanitation_fsm.h"
 #include "brain/feeding_fsm.h"
 #include "brain/living_fsm.h"
+#include "brain/social_fsm.h"
 
 
 /// Attributes' policies.
 static struct nla_policy eater_attr_policy[] = {
-  [EATER_ATTR_NONE] = { .type = NLA_UNSPEC, .len = 0 },
-  [EATER_ATTR_FOOD] = { .type = NLA_BINARY }
+  [EATER_ATTR_NONE]     = { .type = NLA_UNSPEC, .len = 0 },
+  [EATER_ATTR_FOOD]     = { .type = NLA_BINARY },
+  [EATER_ATTR_RPS_SIGN] = { .type = NLA_U8 }
 };
 
 
@@ -64,6 +67,14 @@ static int
 eater_cure(struct sk_buff *skb, struct genl_info *info);
 
 
+/**
+ * Implementation for eater_cmd_t::EATER_CMD_PLAY_RPS
+ *
+ */
+static int
+eater_play_rps(struct sk_buff *skb, struct genl_info *info);
+
+
 /// Entropy eater commands.
 static struct genl_ops eater_cmds[] = {
   {
@@ -90,6 +101,11 @@ static struct genl_ops eater_cmds[] = {
     .cmd    = EATER_CMD_CURE,
     .policy = eater_attr_policy,
     .doit   = eater_cure,
+  },
+  {
+    .cmd    = EATER_CMD_PLAY_RPS,
+    .policy = eater_attr_policy,
+    .doit   = eater_play_rps,
   },
 };
 
@@ -172,4 +188,25 @@ static int
 eater_cure(struct sk_buff *skb, struct genl_info *info)
 {
   return living_fsm_cure_illness();
+}
+
+static int
+eater_play_rps(struct sk_buff *skb, struct genl_info *info)
+{
+  u8 sign;
+
+  if (!info->attrs[EATER_ATTR_RPS_SIGN]) {
+    TRACE_ERR("EATER_ATTR_RPS_SIGN attribute not found");
+    return -EINVAL;
+  }
+
+  sign = nla_get_u8(info->attrs[EATER_ATTR_RPS_SIGN]);
+  if (sign >= RPS_SIGNS_COUNT) {
+    TRACE_ERR("Too big value %u for the RPS sign", sign);
+    return -EINVAL;
+  }
+
+  social_fsm_play_rps(sign);
+
+  return 0;
 }

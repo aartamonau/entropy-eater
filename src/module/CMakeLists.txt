@@ -50,11 +50,13 @@ include_directories ( ${MODULE_OUTPUT_DIR} )
 get_directory_property ( INCLUDE_DIRECTORIES INCLUDE_DIRECTORIES )
 to_include_param ( INCLUDE_DIRECTORIES_PARAM ${INCLUDE_DIRECTORIES} )
 
+set( EXTRA_CFLAGS "${INCLUDE_DIRECTORIES_PARAM} -D__KERNEL__" )
+
 set (
   KBUILD_COMMAND
   ${CMAKE_MAKE_PROGRAM} ARCH=${ARCH}
                         -C ${KERNEL_DIR} M=${MODULE_OUTPUT_DIR}
-                        EXTRA_CFLAGS=${INCLUDE_DIRECTORIES_PARAM}
+                        EXTRA_CFLAGS=${EXTRA_CFLAGS}
                         modules
 )
 

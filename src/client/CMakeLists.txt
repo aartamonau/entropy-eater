@@ -1,5 +1,6 @@
 file ( GLOB EATER_CLIENT_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.c )
 
+include_directories ( ${EATER_MODULE_SOURCE_DIR} )
 include_directories ( ${EATER_LIB_SOURCE_DIR} )
 
 set ( CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -std=gnu99 )

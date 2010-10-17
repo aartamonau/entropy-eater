@@ -14,6 +14,8 @@
 
 #include <stdint.h>
 
+#include "eater_interface.h"
+
 
 enum {
   EATER_OK,                     /**< Status indicating that no errors
@@ -89,6 +91,17 @@ eater_cmd_disinfect(void);
  */
 int
 eater_cmd_cure(void);
+
+
+/**
+ * Plays in rock-paper-scissors game with eater.
+ *
+ * @param sign sign chosen by user
+ *
+ * @return
+ */
+int
+eater_cmd_play_rps(enum rps_sign_t sign);
 
 
 #endif /* _EATER_H_ */

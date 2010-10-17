@@ -72,6 +72,12 @@ struct command_feed_data_t {
 };
 
 
+/// Data for RPS command.
+struct command_rps_data_t {
+  enum rps_sign_t sign;
+};
+
+
 /// Data for fake global command.
 struct command_global_data_t {
   bool help;
@@ -81,6 +87,7 @@ struct command_global_data_t {
 /// Command data.
 union command_data_t {
   struct command_feed_data_t   feed_data;
+  struct command_rps_data_t    rps_data;
   struct command_global_data_t global_data;
 };
 
@@ -248,6 +255,53 @@ cmd_cure_handler(struct command_t *command)
 }
 
 
+static int
+cmd_rps_handler(struct command_t *command)
+{
+  int ret = eater_cmd_play_rps(command->data.rps_data.sign);
+  if (ret != EATER_OK) {
+    error("cannot send 'PLAY_RPS' command to eater: %m", errno);
+    return -1;
+  }
+  return 0;
+}
+
+
+static int
+cmd_rps_opts_handler(struct command_t *command,
+                     const char *optname, char *optvalue)
+{
+  if (strcmp(optname, "sign") == 0) {
+    if (strcmp(optvalue, "rock") == 0) {
+      command->data.rps_data.sign = RPS_SIGN_ROCK;
+    } else if (strcmp(optvalue, "paper") == 0) {
+      command->data.rps_data.sign = RPS_SIGN_PAPER;
+    } else if (strcmp(optvalue, "scissors") == 0) {
+      command->data.rps_data.sign = RPS_SIGN_SCISSORS;
+    } else {
+      error("invalid value '%s' for the '%s' parameter", optvalue, optname);
+    }
+  } else {
+    /* this is impossible */
+    assert( false );
+  }
+
+  return 0;
+}
+
+
+static bool
+cmd_rps_opts_validator(const struct command_t *command)
+{
+  if (command->data.rps_data.sign == (enum rps_sign_t) -1) {
+    error("'sign' parameter is required for '%s' command", command->name);
+    return false;
+  }
+
+  return true;
+}
+
+
 struct command_t commands[] = {
   {
     .name                = "hello",
@@ -310,7 +364,25 @@ struct command_t commands[] = {
     .options = {
       { 0 },
     },
-  }
+  },
+  {
+    .name                = "rps",
+    .requires_connection = true,
+    .handler             = cmd_rps_handler,
+    .opts_handler        = cmd_rps_opts_handler,
+    .opts_validator      = cmd_rps_opts_validator,
+
+    .data = {
+      .rps_data = {
+        .sign = (enum rps_sign_t) -1,
+      },
+    },
+
+    .options = {
+      { "sign", required_argument, NULL, 's' },
+      { 0 },
+    }
+  },
 };
 
 

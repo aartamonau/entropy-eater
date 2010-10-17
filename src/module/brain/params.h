@@ -103,4 +103,15 @@ static inline int __deviate_value(int value, unsigned int deviation)
   __deviate_value(__EATER_INFECTION_DICE_ROLL_DELAY, EATER_TIME_DEVIATION)
 
 
+/// Time needed for entropy eater to become less happy.
+#define __EATER_SOCIAL_STATE_DEMOTION_TIME (100 * 60)
+#define EATER_SOCIAL_STATE_DEMOTION_TIME \
+  __deviate_value(__EATER_SOCIAL_STATE_DEMOTION_TIME, EATER_TIME_DEVIATION)
+
+
+/// Number of times to play in rock-paper-scissors with eater to make it more
+/// happy.
+#define EATER_RPS_COUNT_SOCIAL_STATE_PROMOTE 5
+
+
 #endif /* _PARAMS_H_ */

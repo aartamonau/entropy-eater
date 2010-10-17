@@ -7,7 +7,6 @@
 #include <netlink/genl/genl.h>
 
 #include "eater.h"
-#include "eater_interface.h"
 
 
 /// Internally visible connection representation.
@@ -224,6 +223,46 @@ eater_cmd_feed(uint8_t *data, size_t count)
   }
 
   ret = nla_put(msg, EATER_ATTR_FOOD, count, data);
+  if (ret < 0) {
+    errno = -ret;
+    goto error;
+  }
+
+  ret = nl_send_auto_complete(connection.sock, msg);
+  if (ret < 0) {
+    errno = -ret;
+    goto error;
+  }
+
+  ret = nl_recvmsgs_default(connection.sock);
+  if (ret < 0) {
+    errno = -ret;
+    goto error;
+  }
+
+  ret = EATER_OK;
+  goto out;
+
+error:
+  ret = EATER_ERROR;
+out:
+  nlmsg_free(msg);
+  return ret;
+}
+
+
+int
+eater_cmd_play_rps(enum rps_sign_t sign)
+{
+  int ret;
+  struct nl_msg *msg;
+
+  msg = eater_prepare_message(EATER_CMD_PLAY_RPS);
+  if (msg == NULL) {
+    return EATER_ERROR;
+  }
+
+  ret = nla_put_u8(msg, EATER_ATTR_RPS_SIGN, sign);
   if (ret < 0) {
     errno = -ret;
     goto error;
