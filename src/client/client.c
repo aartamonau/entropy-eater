@@ -34,7 +34,9 @@ usage(void)
           "\tdisinfect\n"
           "\t\tdisinfect entropy eater's room;\n"
           "\tcure\n"
-          "\t\tcure ill entropy eater;\n",
+          "\t\tcure ill entropy eater;\n"
+          "\trps --sign <rock|paper|scissors>\n"
+          "\t\tplay in the rock-paper-scissors game with entropy eater\n",
           program, program);
 }
 
