@@ -211,6 +211,7 @@ social_fsm_revise_state_handler(enum social_state_t state,
     break;
   default:
     ASSERT( !"impossible happened" );
+    new_state = SOCIAL_STATE_DEPRESSED;
   }
 
 
@@ -264,6 +265,7 @@ social_fsm_play_rps_handler(enum social_state_t state,
       break;
     default:
       ASSERT( !"impossible happened" );
+      new_state = SOCIAL_STATE_DEPRESSED;
     }
   } else {
     new_state = state;

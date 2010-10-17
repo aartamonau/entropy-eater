@@ -22,7 +22,7 @@
  *
  * @param expr expression that must be true
  */
-#ifndef NOASSERT
+#ifdef DEBUG
 
 #define ASSERT(expr)                                  \
   do {                                                \
