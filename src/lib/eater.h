@@ -81,4 +81,14 @@ int
 eater_cmd_disinfect(void);
 
 
+/**
+ * Cures ill entropy eater.
+ *
+ *
+ * @return
+ */
+int
+eater_cmd_cure(void);
+
+
 #endif /* _EATER_H_ */

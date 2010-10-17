@@ -162,7 +162,7 @@ __fsm_emit(struct fsm_t *fsm, int event, void *data)
 
   ASSERT_VALID_EVENT( fsm, event );
 
-  TRACE_DEBUG("FSM %s: tstate: %s, incoming event: %s",
+  TRACE_DEBUG("FSM %s: state: %s, incoming event: %s",
               fsm->name,
               fsm->show_state(fsm->state),
               fsm->show_event(event));

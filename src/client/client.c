@@ -32,7 +32,9 @@ usage(void)
           "\tsweep\n"
           "\t\tsweep entropy eater's room;\n"
           "\tdisinfect\n"
-          "\t\tdisinfect entropy eater's room;\n",
+          "\t\tdisinfect entropy eater's room;\n"
+          "\tcure\n"
+          "\t\tcure ill entropy eater;\n",
           program, program);
 }
 
@@ -232,6 +234,20 @@ cmd_disinfect_handler(struct command_t *command)
 }
 
 
+static int
+cmd_cure_handler(struct command_t *command)
+{
+  int ret;
+
+  ret = eater_cmd_cure();
+  if (ret != EATER_OK) {
+    error("cannot send 'CURE' command to eater: %m", errno);
+    return -1;
+  }
+  return 0;
+}
+
+
 struct command_t commands[] = {
   {
     .name                = "hello",
@@ -284,6 +300,17 @@ struct command_t commands[] = {
       { 0 },
     },
   },
+  {
+    .name                = "cure",
+    .requires_connection = true,
+    .handler             = cmd_cure_handler,
+    .opts_handler        = NULL,
+    .opts_validator      = NULL,
+
+    .options = {
+      { 0 },
+    },
+  }
 };
 
 

@@ -208,6 +208,8 @@ living_fsm_fall_ill_handler(enum living_state_t state,
   case LIVING_STATE_ILL:
     new_state = LIVING_STATE_VERY_ILL;
     brain_msg("another illness makes me very ill");
+    fsm_cancel_postponed_events_by_type(&living_fsm->fsm,
+                                        LIVING_EVENT_REVISE_ILLNESS);
     fsm_postpone_event(&living_fsm->fsm,
                        LIVING_EVENT_DIE, EATER_VERY_ILL_LIVING_PERIOD);
     break;
@@ -264,10 +266,13 @@ living_fsm_cure_illness_handler(enum living_state_t state,
   case LIVING_STATE_ILL:
     brain_msg("thank you for your help; I'm just fine now");
     new_state = LIVING_STATE_ALIVE;
+    fsm_cancel_postponed_events_by_type(&living_fsm->fsm,
+                                        LIVING_EVENT_REVISE_ILLNESS);
     break;
   case LIVING_STATE_VERY_ILL:
     brain_msg("finally you gave me some remedies; It feels much better now");
     new_state = LIVING_STATE_ILL;
+    fsm_cancel_postponed_events_by_type(&living_fsm->fsm, LIVING_EVENT_DIE);
     fsm_postpone_event(&living_fsm->fsm,
                        LIVING_EVENT_REVISE_ILLNESS,
                        EATER_ILL_TO_VERY_ILL_PERIOD);

@@ -3,6 +3,7 @@
 #include "utils/trace.h"
 #include "brain/sanitation_fsm.h"
 #include "brain/feeding_fsm.h"
+#include "brain/living_fsm.h"
 
 
 /// Attributes' policies.
@@ -23,7 +24,7 @@ static struct genl_family eater_genl_family = {
 
 
 /**
- * Implementation for eater_cmd_t::eater_cmd_hello.
+ * Implementation for eater_cmd_t::EATER_CMD_HELLO.
  *
  */
 static int
@@ -32,7 +33,7 @@ eater_hello(struct sk_buff *skb, struct genl_info *info);
 
 
 /**
- * Implementation for eater_cmd_t::eater_cmd_feed.
+ * Implementation for eater_cmd_t::EATER_CMD_FEED.
  *
  */
 static int
@@ -40,7 +41,7 @@ eater_feed(struct sk_buff *skb, struct genl_info *info);
 
 
 /**
- * Implementation for eater_cmd_t::eater_cmd_sweep.
+ * Implementation for eater_cmd_t::EATER_CMD_SWEEP.
  *
  */
 static int
@@ -48,11 +49,19 @@ eater_sweep(struct sk_buff *skb, struct genl_info *info);
 
 
 /**
- * Implementation for eater_cmd_t::eater_cmd_disinfect.
+ * Implementation for eater_cmd_t::EATER_CMD_DISINFECT.
  *
  */
 static int
 eater_disinfect(struct sk_buff *skb, struct genl_info *info);
+
+
+/**
+ * Implementation for eater_cmd_t::EATER_CMD_CURE.
+ *
+ */
+static int
+eater_cure(struct sk_buff *skb, struct genl_info *info);
 
 
 /// Entropy eater commands.
@@ -76,6 +85,11 @@ static struct genl_ops eater_cmds[] = {
     .cmd    = EATER_CMD_DISINFECT,
     .policy = eater_attr_policy,
     .doit   = eater_disinfect,
+  },
+  {
+    .cmd    = EATER_CMD_CURE,
+    .policy = eater_attr_policy,
+    .doit   = eater_cure,
   },
 };
 
@@ -151,4 +165,11 @@ static int
 eater_disinfect(struct sk_buff *skb, struct genl_info *info)
 {
   return sanitation_fsm_disinfect();
+}
+
+
+static int
+eater_cure(struct sk_buff *skb, struct genl_info *info)
+{
+  return living_fsm_cure_illness();
 }

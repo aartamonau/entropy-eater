@@ -264,3 +264,10 @@ eater_cmd_disinfect(void)
 {
   return eater_send_noarg_cmd(EATER_CMD_DISINFECT);
 }
+
+
+int
+eater_cmd_cure(void)
+{
+  return eater_send_noarg_cmd(EATER_CMD_CURE);
+}
