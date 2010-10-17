@@ -76,14 +76,14 @@ static inline int __deviate_value(int value, unsigned int deviation)
 
 
 /// Determines how long entropy eater can live without cure when he's very ill.
-#define __EATER_VERY_ILL_LIVING_PERIOD (30 * TIME_BASE)
+#define __EATER_VERY_ILL_LIVING_PERIOD (270 * TIME_BASE)
 #define EATER_VERY_ILL_LIVING_PERIOD \
   __deviate_value(__EATER_VERY_ILL_LIVING_PERIOD, EATER_TIME_DEVIATION)
 
 
 /// Determines how fast entropy eater moves from ill to very ill state
 /// without a cure.
-#define __EATER_ILL_TO_VERY_ILL_PERIOD (50 * TIME_BASE)
+#define __EATER_ILL_TO_VERY_ILL_PERIOD (270 * TIME_BASE)
 #define EATER_ILL_TO_VERY_ILL_PERIOD \
   __deviate_value(__EATER_ILL_TO_VERY_ILL_PERIOD, EATER_TIME_DEVIATION)
 
@@ -101,20 +101,20 @@ static inline int __deviate_value(int value, unsigned int deviation)
 
 
 /// Delay between a meal and a need to go to bathroom.
-#define __EATER_GO_TO_BATHROOM_DELAY (20 * TIME_BASE)
+#define __EATER_GO_TO_BATHROOM_DELAY (25 * TIME_BASE)
 #define EATER_GO_TO_BATHROOM_DELAY \
   __deviate_value(__EATER_GO_TO_BATHROOM_DELAY, EATER_TIME_DEVIATION)
 
 
 /// Determines how often there will a chance for eater to become infected in
 /// insanitary conditions.
-#define __EATER_INFECTION_DICE_ROLL_DELAY (20 * TIME_BASE)
+#define __EATER_INFECTION_DICE_ROLL_DELAY (90 * TIME_BASE)
 #define EATER_INFECTION_DICE_ROLL_DELAY \
   __deviate_value(__EATER_INFECTION_DICE_ROLL_DELAY, EATER_TIME_DEVIATION)
 
 
 /// Time needed for entropy eater to become less happy.
-#define __EATER_SOCIAL_STATE_DEMOTION_TIME (100 * TIME_BASE)
+#define __EATER_SOCIAL_STATE_DEMOTION_TIME (200 * TIME_BASE)
 #define EATER_SOCIAL_STATE_DEMOTION_TIME \
   __deviate_value(__EATER_SOCIAL_STATE_DEMOTION_TIME, EATER_TIME_DEVIATION)
 
