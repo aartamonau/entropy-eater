@@ -14,6 +14,8 @@
 #define _PARAMS_H_
 
 
+#include <linux/delay.h>
+
 #include "utils/assert.h"
 #include "utils/random.h"
 
@@ -35,13 +37,21 @@ static inline int __deviate_value(int value, unsigned int deviation)
 }
 
 
+/// Base value of time used for all other time measurements.
+#ifdef DEBUG
+#define TIME_BASE (msecs_to_jiffies(1000))
+#else
+#define TIME_BASE (msecs_to_jiffies(1000) * 60)
+#endif
+
+
 /// In which bounds (in per cents) to randomize all the time parameters
 /// specified here.
 #define EATER_TIME_DEVIATION 10
 
 
 /// Periods between eaters' meals.
-#define __EATER_FEEDING_TIME_PERIOD (30 * 60)
+#define __EATER_FEEDING_TIME_PERIOD (30 * TIME_BASE)
 #define EATER_FEEDING_TIME_PERIOD \
   __deviate_value(__EATER_FEEDING_TIME_PERIOD, EATER_TIME_DEVIATION)
 
@@ -66,14 +76,14 @@ static inline int __deviate_value(int value, unsigned int deviation)
 
 
 /// Determines how long entropy eater can live without cure when he's very ill.
-#define __EATER_VERY_ILL_LIVING_PERIOD (30 * 60)
+#define __EATER_VERY_ILL_LIVING_PERIOD (30 * TIME_BASE)
 #define EATER_VERY_ILL_LIVING_PERIOD \
   __deviate_value(__EATER_VERY_ILL_LIVING_PERIOD, EATER_TIME_DEVIATION)
 
 
 /// Determines how fast entropy eater moves from ill to very ill state
 /// without a cure.
-#define __EATER_ILL_TO_VERY_ILL_PERIOD (50 * 60)
+#define __EATER_ILL_TO_VERY_ILL_PERIOD (50 * TIME_BASE)
 #define EATER_ILL_TO_VERY_ILL_PERIOD \
   __deviate_value(__EATER_ILL_TO_VERY_ILL_PERIOD, EATER_TIME_DEVIATION)
 
@@ -91,20 +101,20 @@ static inline int __deviate_value(int value, unsigned int deviation)
 
 
 /// Delay between a meal and a need to go to bathroom.
-#define __EATER_GO_TO_BATHROOM_DELAY (20 * 60)
+#define __EATER_GO_TO_BATHROOM_DELAY (20 * TIME_BASE)
 #define EATER_GO_TO_BATHROOM_DELAY \
   __deviate_value(__EATER_GO_TO_BATHROOM_DELAY, EATER_TIME_DEVIATION)
 
 
 /// Determines how often there will a chance for eater to become infected in
 /// insanitary conditions.
-#define __EATER_INFECTION_DICE_ROLL_DELAY (20 * 60)
+#define __EATER_INFECTION_DICE_ROLL_DELAY (20 * TIME_BASE)
 #define EATER_INFECTION_DICE_ROLL_DELAY \
   __deviate_value(__EATER_INFECTION_DICE_ROLL_DELAY, EATER_TIME_DEVIATION)
 
 
 /// Time needed for entropy eater to become less happy.
-#define __EATER_SOCIAL_STATE_DEMOTION_TIME (100 * 60)
+#define __EATER_SOCIAL_STATE_DEMOTION_TIME (100 * TIME_BASE)
 #define EATER_SOCIAL_STATE_DEMOTION_TIME \
   __deviate_value(__EATER_SOCIAL_STATE_DEMOTION_TIME, EATER_TIME_DEVIATION)
 
